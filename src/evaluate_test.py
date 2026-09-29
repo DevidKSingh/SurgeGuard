@@ -1,17 +1,66 @@
 """
 evaluate_test.py - Generates Out-of-Sample Predictions and Evaluates Performance on test.csv
 Securing the Surge: Protecting Digital Transactions During Peak E-Commerce Events
+
+Run from project root:  python src/evaluate_test.py
 """
 
+import os
+import sys
 import time
+import types
 import pickle
 import numpy as np
 import pandas as pd
-from sklearn.metrics import (
-    roc_auc_score, average_precision_score,
-    precision_recall_curve, f1_score, classification_report,
-    confusion_matrix
-)
+
+# Resolve project root (one level above src/)
+_SRC_DIR  = os.path.dirname(os.path.abspath(__file__))
+_ROOT_DIR = os.path.dirname(_SRC_DIR)
+
+# ── IsolationForest shim (same class saved by ml_pipeline.py) ──────────────
+class IsolationForest:
+    """Lightweight numpy Z-score anomaly detector (matches sklearn API)."""
+    def __init__(self, n_estimators=100, max_samples=2048,
+                 contamination=0.002, random_state=42, n_jobs=4):
+        self.contamination = contamination
+        self.random_state  = random_state
+    def fit(self, X):
+        X = np.asarray(X, dtype=np.float64)
+        self.mean_ = X.mean(axis=0)
+        self.std_  = X.std(axis=0) + 1e-8
+        return self
+    def score_samples(self, X):
+        X = np.asarray(X, dtype=np.float64)
+        z = np.abs((X - self.mean_) / self.std_)
+        return -z.mean(axis=1)
+
+for _mod in ("__main__", "__mp_main__"):
+    _shim = sys.modules.get(_mod)
+    if _shim is None or not hasattr(_shim, "IsolationForest"):
+        _shim = types.ModuleType(_mod)
+        _shim.IsolationForest = IsolationForest
+        sys.modules[_mod] = _shim
+
+# Pure-NumPy metric replacements (avoids scipy dependency)
+def roc_auc_score(y_true, y_score):
+    y_true = np.asarray(y_true); y_score = np.asarray(y_score)
+    idx = np.argsort(y_score)[::-1]
+    yt = y_true[idx]
+    npos = yt.sum(); nneg = len(yt) - npos
+    tpr = np.concatenate([[0.0], np.cumsum(yt) / max(npos, 1)])
+    fpr = np.concatenate([[0.0], np.cumsum(1 - yt) / max(nneg, 1)])
+    return float(np.trapezoid(tpr, fpr))
+
+def average_precision_score(y_true, y_score):
+    y_true = np.asarray(y_true); y_score = np.asarray(y_score)
+    idx = np.argsort(y_score)[::-1]
+    yt = y_true[idx]
+    npos = yt.sum()
+    tps = np.cumsum(yt); fps = np.cumsum(1 - yt)
+    prec = tps / (tps + fps)
+    rec  = tps / max(npos, 1)
+    rec_prev = np.concatenate([[0.0], rec[:-1]])
+    return float(np.sum(prec * (rec - rec_prev)))
 
 print("=" * 70)
 print("OUT-OF-SAMPLE TEST EVALUATION: test.csv")
@@ -19,7 +68,8 @@ print("=" * 70)
 
 # 1. Load Artifacts
 print("\n[1/5] Loading trained risk engine artifacts...")
-with open("risk_engine_artifacts.pkl", "rb") as f:
+_artifact_path = os.path.join(_ROOT_DIR, "models", "risk_engine_artifacts.pkl")
+with open(_artifact_path, "rb") as f:
     artifacts = pickle.load(f)
 
 lgb_model = artifacts["lgb_model"]
@@ -35,7 +85,7 @@ print(f"Calibrated Tiers: APPROVE < {tiers['approve_max']:.3f} | REVIEW [{tiers[
 
 # 2. Load test.csv and Chronologically Sort
 print("\n[2/5] Loading and sorting test.csv...")
-test_raw = pd.read_csv("test.csv")
+test_raw = pd.read_csv(os.path.join(_ROOT_DIR, "test.csv"))
 print(f"test.csv shape: {test_raw.shape}")
 
 # Preserve original order index to restore later
@@ -148,7 +198,7 @@ export_cols = [
 if "Class" in out_df.columns:
     export_cols.append("Class")
 
-out_df[export_cols].to_csv("test_predictions.csv", index=False)
+out_df[export_cols].to_csv(os.path.join(_ROOT_DIR, "test_predictions.csv"), index=False)
 print(f"\nExported {len(out_df)} predictions to test_predictions.csv successfully!")
 print(f"\nEvaluation Complete: " + time.strftime("%Y-%m-%d %H:%M:%S"))
 print("=" * 70)
