@@ -10,7 +10,7 @@ load_dotenv()
 
 HOST    = os.getenv("HOST",    "0.0.0.0")
 PORT    = int(os.getenv("PORT",    "8000"))
-WORKERS = int(os.getenv("WORKERS", "4"))
+WORKERS = int(os.getenv("WORKERS", "1"))
 
 if __name__ == "__main__":
     print(f"Starting Adaptive Risk Engine Server on http://{HOST}:{PORT}...")

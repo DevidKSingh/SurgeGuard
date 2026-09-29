@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SurgeGuard -- Admin Override Console</title>
+  <meta name="description" content="Admin console for reviewing and approving halted or flagged transactions in SurgeGuard risk engine." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="admin-style.css" />
+</head>
+<body class="dark-theme">
+
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="brand-shield" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title-row">
+          <h1 class="brand-title">SurgeGuard</h1>
+          <span class="brand-env-tag">ADMIN CONSOLE</span>
+        </div>
+        <p class="brand-subtitle">Transaction Override &amp; Audit Center</p>
+      </div>
+    </div>
+    <div class="admin-nav-links">
+      <a id="dashboardLink" href="/" class="admin-nav-link">&#8592; Live Dashboard</a>
+      <div class="system-status">
+        <span id="serverStatusDot" class="status-indicator-dot"></span>
+        <span class="status-label">ENGINE:</span>
+        <span id="serverStatusText" class="status-badge">Connecting...</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="admin-stats-strip">
+    <div class="admin-stat-card">
+      <span class="admin-stat-label">Total Flagged</span>
+      <span id="statTotal" class="admin-stat-value">--</span>
+    </div>
+    <div class="admin-stat-card stat-halt">
+      <span class="admin-stat-label">HALT</span>
+      <span id="statHalt" class="admin-stat-value text-rose">--</span>
+    </div>
+    <div class="admin-stat-card stat-review">
+      <span class="admin-stat-label">REVIEW</span>
+      <span id="statReview" class="admin-stat-value text-amber">--</span>
+    </div>
+    <div class="admin-stat-card stat-approved">
+      <span class="admin-stat-label">Admin Approved</span>
+      <span id="statApproved" class="admin-stat-value text-emerald">--</span>
+    </div>
+    <div class="admin-stat-card stat-pending">
+      <span class="admin-stat-label">Pending Review</span>
+      <span id="statPending" class="admin-stat-value">--</span>
+    </div>
+  </section>
+
+  <main class="admin-main">
+
+    <div class="admin-controls glass-panel">
+      <div class="admin-controls-left">
+        <div class="admin-search-input-wrap" style="min-width:320px;">
+          <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
+            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+          </svg>
+          <input id="searchInput" class="admin-search-input" type="text" placeholder="Search by Transaction ID..." autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="filter-tabs" role="tablist">
+          <button class="filter-tab active" data-filter="all" role="tab" id="tabAll">All</button>
+          <button class="filter-tab" data-filter="HALT" role="tab" id="tabHalt">
+            <span class="filter-tab-dot dot-halt"></span>HALT
+          </button>
+          <button class="filter-tab" data-filter="REVIEW" role="tab" id="tabReview">
+            <span class="filter-tab-dot dot-review"></span>REVIEW
+          </button>
+          <button class="filter-tab" data-filter="approved" role="tab" id="tabApproved">
+            <span class="filter-tab-dot dot-approved"></span>Approved
+          </button>
+          <button class="filter-tab" data-filter="pending" role="tab" id="tabPending">Pending</button>
+        </div>
+      </div>
+      <div class="admin-controls-right">
+        <span id="autoRefreshStatus" class="auto-refresh-badge">Auto-refresh ON</span>
+        <button id="refreshBtn" class="btn-admin-search" style="display:flex;align-items:center;gap:6px;">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13" aria-hidden="true">
+            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+          </svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <div id="detailPanel" class="admin-detail-panel" style="display:none;">
+      <div class="detail-panel-header">
+        <div>
+          <div class="detail-tx-id-row">
+            <span id="detailTxId" class="admin-result-tx-id">--</span>
+            <span id="detailCurrentBadge" class="decision-badge halt">HALT</span>
+          </div>
+          <div class="detail-meta-row">
+            <span class="admin-result-label">Original: <span id="detailOriginalDecision" class="detail-meta-val">--</span></span>
+            <span class="admin-result-label">Amount: <span id="detailAmount" class="detail-meta-val">--</span></span>
+            <span class="admin-result-label">Flagged: <span id="detailFlaggedAt" class="detail-meta-val">--</span></span>
+          </div>
+        </div>
+        <button id="detailCloseBtn" class="btn-action" title="Close panel">x Close</button>
+      </div>
+
+      <div class="admin-result-signals" style="margin-top:14px;">
+        <div class="admin-signal-item">
+          <span class="admin-signal-label">ML Fraud Prob</span>
+          <span class="admin-signal-val" id="detailML">--</span>
+        </div>
+        <div class="admin-signal-item">
+          <span class="admin-signal-label">Anomaly Score</span>
+          <span class="admin-signal-val" id="detailAnomaly">--</span>
+        </div>
+        <div class="admin-signal-item">
+          <span class="admin-signal-label">Risk Score</span>
+          <span class="admin-signal-val" id="detailRisk">--</span>
+        </div>
+        <div class="admin-signal-item">
+          <span class="admin-signal-label">Velocity Index</span>
+          <span class="admin-signal-val" id="detailVelocity">--</span>
+        </div>
+        <div class="admin-signal-item">
+          <span class="admin-signal-label">Admin Approved</span>
+          <span class="admin-signal-val" id="detailApprovedStatus">No</span>
+        </div>
+      </div>
+
+      <div class="admin-result-reasons" style="margin-top:14px;">
+        <span class="admin-result-label">ML Rationale:</span>
+        <ul id="detailReasonsList" class="admin-reasons-list"></ul>
+      </div>
+
+      <div class="admin-action-row" style="margin-top:16px;">
+        <button id="detailApproveBtn" class="btn-admin-approve">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+          </svg>
+          <span id="detailApproveBtnLabel">Approve Transaction</span>
+        </button>
+        <span id="detailApproveStatus" class="admin-approve-status"></span>
+      </div>
+      <div id="detailMessage" class="admin-message" style="display:none;margin-top:10px;"></div>
+    </div>
+
+    <div class="glass-panel" style="padding:0;overflow:hidden;">
+      <div class="admin-table-toolbar">
+        <span id="tableCountLabel" class="admin-result-label">Loading transactions...</span>
+        <span id="lastRefreshedLabel" class="admin-result-label" style="margin-left:auto;"></span>
+      </div>
+      <div class="table-container" style="max-height:calc(100vh - 390px); border:none; border-radius:0;">
+        <table class="ledger-table admin-table" id="adminTable">
+          <thead>
+            <tr>
+              <th style="width:32px;"></th>
+              <th>TRANSACTION ID</th>
+              <th>AMOUNT</th>
+              <th>ORIGINAL DECISION</th>
+              <th>CURRENT STATUS</th>
+              <th>ML PROB</th>
+              <th>ANOMALY</th>
+              <th>RISK SCORE</th>
+              <th>FLAGGED AT</th>
+              <th>ACTION</th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody">
+            <tr id="loadingRow">
+              <td colspan="10" class="admin-empty-cell">
+                <div class="admin-empty-state">
+                  <div class="admin-spinner"></div>
+                  <span>Loading flagged transactions...</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="admin.js"></script>
+</body>
+</html>

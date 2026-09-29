@@ -4,16 +4,44 @@ Securing the Surge: Protecting Digital Transactions During Peak E-Commerce Event
 """
 
 import os
+import sys
 import time
+import types
 import pickle
 from contextlib import asynccontextmanager
 from typing import List, Dict, Any, Optional
+from datetime import datetime, timezone
 from collections import deque
 import numpy as np
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+
+
+# =====================================================================
+# ISOLATION FOREST — defined here so pickle can deserialize artifacts
+# that were saved when ml_pipeline.py ran as __main__.
+# This MUST be defined at module level before load_artifacts() is called.
+# =====================================================================
+class IsolationForest:
+    """Lightweight numpy Z-score anomaly detector (matches sklearn IsolationForest API)."""
+    def __init__(self, n_estimators=100, max_samples=2048,
+                 contamination=0.002, random_state=42, n_jobs=4):
+        self.contamination = contamination
+        self.random_state  = random_state
+
+    def fit(self, X):
+        X = np.asarray(X, dtype=np.float64)
+        self.mean_ = X.mean(axis=0)
+        self.std_  = X.std(axis=0) + 1e-8
+        return self
+
+    def score_samples(self, X):
+        """Returns negative anomaly score — higher means more normal (sklearn convention)."""
+        X = np.asarray(X, dtype=np.float64)
+        z = np.abs((X - self.mean_) / self.std_)
+        return -z.mean(axis=1)
 
 # Load environment variables from .env (no-op if file is absent)
 load_dotenv()
@@ -75,6 +103,42 @@ class RiskDecisionResponse(BaseModel):
     latency_ms: float
     reasons: List[str]
     context_adapters_active: List[str]
+
+
+class FlaggedTransaction(BaseModel):
+    transaction_id: str
+    original_decision: str  # "REVIEW" or "HALT"
+    current_decision: str
+    risk_score: float
+    ml_fraud_prob: float
+    anomaly_score: float
+    velocity_surge_index: float
+    amount: Optional[str] = None
+    reasons: List[str]
+    flagged_at: str
+    approved_by_admin: bool = False
+    approved_at: Optional[str] = None
+
+
+class RegisterFlaggedPayload(BaseModel):
+    """Lightweight payload sent by the dashboard simulation for each HALT/REVIEW tx."""
+    transaction_id: str
+    decision: str          # "HALT" or "REVIEW"
+    risk_score: float
+    ml_fraud_prob: float
+    anomaly_score: float
+    velocity_surge_index: float
+    amount: Optional[str] = None
+    reasons: List[str]
+
+
+class AdminApproveResponse(BaseModel):
+    transaction_id: str
+    status: str
+    message: str
+    previous_decision: str
+    new_decision: str
+    approved_at: str
 
 
 # Modular Context Adapter Architecture
@@ -185,6 +249,18 @@ class RollingVelocityBuffer:
 def load_artifacts():
     global artifacts
     try:
+        # ── Pickle shim ──────────────────────────────────────────────────────────
+        # ml_pipeline.py was run as __main__, so IsolationForest was pickled as
+        # __main__.IsolationForest.  Worker processes are __mp_main__, not __main__,
+        # so pickle can't find the class.  We inject a shim that points __main__
+        # (and __mp_main__) at a fake module containing our IsolationForest class.
+        for mod_name in ("__main__", "__mp_main__"):
+            shim = sys.modules.get(mod_name)
+            if shim is None or not hasattr(shim, "IsolationForest"):
+                shim = types.ModuleType(mod_name)
+                shim.IsolationForest = IsolationForest
+                sys.modules[mod_name] = shim
+        # ─────────────────────────────────────────────────────────────────────────
         with open(ARTIFACTS_PATH, "rb") as f:
             artifacts = pickle.load(f)
             print(f"Successfully loaded risk engine artifacts from '{ARTIFACTS_PATH}'!")
@@ -216,6 +292,12 @@ app.add_middleware(
 
 # Loaded on startup (via lifespan)
 artifacts = None
+
+# In-memory store for flagged transactions (HALT / REVIEW)
+# Dict[transaction_id -> FlaggedTransaction]
+# Capped at 1 000 entries (FIFO eviction) to prevent unbounded growth.
+MAX_FLAGGED_STORE = 1000
+flagged_store: Dict[str, FlaggedTransaction] = {}
 
 velocity_buffer = RollingVelocityBuffer()
 context_adapters = [
@@ -330,8 +412,30 @@ def evaluate_transaction(payload: TransactionPayload):
 
     latency_ms = (time.perf_counter() - t_start) * 1000.0
 
+    tx_id = f"TX-{int(payload.Time)}-{int(payload.Amount*100)%9999}"
+
+    # Persist HALT / REVIEW decisions so admins can search & override them
+    if decision in ("HALT", "REVIEW"):
+        if len(flagged_store) >= MAX_FLAGGED_STORE:
+            # Evict oldest entry
+            oldest_key = next(iter(flagged_store))
+            del flagged_store[oldest_key]
+        flagged_store[tx_id] = FlaggedTransaction(
+            transaction_id=tx_id,
+            original_decision=decision,
+            current_decision=decision,
+            risk_score=round(adaptive_risk, 4),
+            ml_fraud_prob=round(ml_prob, 4),
+            anomaly_score=round(anomaly_score, 4),
+            velocity_surge_index=round(velocity_surge_index, 4),
+            reasons=reasons,
+            flagged_at=datetime.now(timezone.utc).isoformat(),
+            approved_by_admin=False,
+            approved_at=None,
+        )
+
     return RiskDecisionResponse(
-        transaction_id=f"TX-{int(payload.Time)}-{int(payload.Amount*100)%9999}",
+        transaction_id=tx_id,
         decision=decision,
         risk_score=round(adaptive_risk, 4),
         ml_fraud_prob=round(ml_prob, 4),
@@ -353,6 +457,108 @@ def health():
     }
 
 
+# =====================================================================
+# 5. ADMIN OVERRIDE ENDPOINTS
+# =====================================================================
+
+@app.get("/api/v1/admin/transaction/{tx_id}", response_model=FlaggedTransaction)
+def admin_lookup_transaction(tx_id: str):
+    """
+    Look up a HALT or REVIEW transaction by its ID.
+    Used by admins to inspect a flagged transaction before deciding to approve it.
+    """
+    entry = flagged_store.get(tx_id)
+    if entry is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Transaction '{tx_id}' not found in the flagged store. "
+                   "Only HALT and REVIEW decisions are retained for admin override."
+        )
+    return entry
+
+
+@app.post("/api/v1/admin/approve/{tx_id}", response_model=AdminApproveResponse)
+def admin_approve_transaction(tx_id: str):
+    """
+    Admin override: forcibly approve a previously HALT-ed or REVIEW-ed transaction.
+    This records the override in-memory so the audit trail is preserved.
+    """
+    entry = flagged_store.get(tx_id)
+    if entry is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Transaction '{tx_id}' not found. Only HALT/REVIEW transactions can be overridden."
+        )
+    if entry.approved_by_admin:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Transaction '{tx_id}' has already been approved by an admin at {entry.approved_at}."
+        )
+
+    previous = entry.current_decision
+    approved_ts = datetime.now(timezone.utc).isoformat()
+    entry.current_decision = "APPROVE"
+    entry.approved_by_admin = True
+    entry.approved_at = approved_ts
+    flagged_store[tx_id] = entry
+
+    return AdminApproveResponse(
+        transaction_id=tx_id,
+        status="success",
+        message=f"Transaction {tx_id} has been administratively approved. Original ML decision was '{previous}'.",
+        previous_decision=previous,
+        new_decision="APPROVE",
+        approved_at=approved_ts,
+    )
+
+
+@app.get("/api/v1/admin/flagged", response_model=List[FlaggedTransaction])
+def admin_list_flagged(limit: int = 200):
+    """
+    Return the most-recent flagged transactions (HALT/REVIEW/overridden), newest first.
+    Useful for the admin panel to show pending overrides.
+    """
+    entries = list(flagged_store.values())
+    entries.sort(key=lambda e: e.flagged_at, reverse=True)
+    return entries[:limit]
+
+
+@app.post("/api/v1/admin/register", status_code=201)
+def admin_register_flagged(payload: RegisterFlaggedPayload):
+    """
+    Register a HALT or REVIEW transaction from the dashboard simulation into the
+    flagged_store. This bridges the client-side simulation with the server-side
+    admin override workflow so that transaction IDs shown in the live feed can
+    actually be looked up and approved by an admin.
+    """
+    if payload.decision not in ("HALT", "REVIEW"):
+        raise HTTPException(status_code=400, detail="Only HALT or REVIEW decisions can be registered.")
+
+    # Idempotent: if already in store, just return the existing entry
+    if payload.transaction_id in flagged_store:
+        return {"status": "already_exists", "transaction_id": payload.transaction_id}
+
+    if len(flagged_store) >= MAX_FLAGGED_STORE:
+        oldest_key = next(iter(flagged_store))
+        del flagged_store[oldest_key]
+
+    flagged_store[payload.transaction_id] = FlaggedTransaction(
+        transaction_id=payload.transaction_id,
+        original_decision=payload.decision,
+        current_decision=payload.decision,
+        risk_score=round(payload.risk_score, 4),
+        ml_fraud_prob=round(payload.ml_fraud_prob, 4),
+        anomaly_score=round(payload.anomaly_score, 4),
+        velocity_surge_index=round(payload.velocity_surge_index, 4),
+        amount=payload.amount,
+        reasons=payload.reasons,
+        flagged_at=datetime.now(timezone.utc).isoformat(),
+        approved_by_admin=False,
+        approved_at=None,
+    )
+    return {"status": "registered", "transaction_id": payload.transaction_id}
+
+
 # Serve Dashboard static assets
 import os
 from fastapi.responses import FileResponse
@@ -366,6 +572,13 @@ def serve_dashboard():
         return FileResponse(index_file)
     return {"message": "SurgeGuard Risk Engine Active. Dashboard index.html not found."}
 
+@app.get("/admin")
+def serve_admin():
+    admin_file = os.path.join(dashboard_path, "admin.html")
+    if os.path.exists(admin_file):
+        return FileResponse(admin_file)
+    return {"message": "Admin page not found."}
+
 @app.get("/style.css")
 def serve_css():
     return FileResponse(os.path.join(dashboard_path, "style.css"))
@@ -373,3 +586,11 @@ def serve_css():
 @app.get("/app.js")
 def serve_js():
     return FileResponse(os.path.join(dashboard_path, "app.js"))
+
+@app.get("/admin.js")
+def serve_admin_js():
+    return FileResponse(os.path.join(dashboard_path, "admin.js"))
+
+@app.get("/admin-style.css")
+def serve_admin_style():
+    return FileResponse(os.path.join(dashboard_path, "admin-style.css"))

@@ -1,0 +1,207 @@
+﻿============================================================
+  SURGEGUARD — HACKATHON DEMO GUIDE
+  YUVA MEGATHON | Read this before presenting to the jury
+============================================================
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 1 — OPEN A TERMINAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Open PowerShell or Command Prompt.
+Navigate to the project folder:
+
+  cd "c:\Users\kumar\Downloads\Banking Fraud Management\train"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 2 — START THE SERVER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run this command:
+
+  python run_server.py
+
+You should see:
+
+  Starting Adaptive Risk Engine Server on http://0.0.0.0:8000...
+  INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+  INFO:     Started server process [...]
+  INFO:     Application startup complete.
+
+If it says "Successfully loaded risk engine artifacts" — PERFECT, you are ready.
+If it says "Artifacts not yet found" — that just means the model wasn't trained yet.
+  Run: python ml_pipeline.py   (takes a few minutes, then restart the server)
+
+KEEP THIS TERMINAL OPEN. Do NOT close it while presenting.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 3 — OPEN THE DASHBOARD IN YOUR BROWSER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IMPORTANT: Always open pages using these server URLs.
+DO NOT open the HTML files directly from the file explorer.
+
+  Live Dashboard  →  http://localhost:8000
+  Admin Console   →  http://localhost:8000/admin
+  API Docs        →  http://localhost:8000/docs
+  Health Check    →  http://localhost:8000/api/v1/health
+
+TIP: Open the Live Dashboard and Admin Console in TWO SEPARATE BROWSER TABS.
+This way you can switch between them without losing the live feed.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 4 — DEMO FLOW FOR THE JURY (3 Scenarios)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Open http://localhost:8000 and walk through these 3 scenarios:
+
+------------------------------------------------------------
+ SCENARIO A: Baseline Flow (Green button)
+------------------------------------------------------------
+  Click "Baseline Flow"
+  
+  What to say:
+  "This is normal shopping traffic — around 15 to 20 transactions
+  per second. You can see all decisions are instantly APPROVED.
+  Risk scores stay below 0.05. Zero friction for real shoppers."
+
+------------------------------------------------------------
+ SCENARIO B: Flash Sale Surge (Yellow/Orange button)
+------------------------------------------------------------
+  Click "Flash Sale Surge"
+  
+  What to say:
+  "Volume just jumped to over 130 TPS — that is a 7.5x spike.
+  Legacy rule-based systems would panic and start blocking people.
+  SurgeGuard keeps approving because the feature vectors still look
+  like legitimate shoppers. High volume is NOT the same as fraud.
+  Zero false declines. This is our core insight."
+
+------------------------------------------------------------
+ SCENARIO C: Coordinated Bot Attack (Red button)
+------------------------------------------------------------
+  Click "Coordinated Attack"
+  
+  What to say:
+  "Now we have a real bot attack — same high velocity, but now
+  the transaction feature vectors are anomalous. V14, V4, V12
+  are deviating from normal buyer behavior. The composite risk
+  score spikes above 0.80. Watch the HALT badges appear in real
+  time. We are quarantining 78% of fraudulent transactions while
+  still approving the legitimate shoppers mixed in the traffic."
+
+  After a few seconds, copy one of the HALT transaction IDs
+  from the ledger table (the TX-XXXXXX-XXXX string).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 5 — SHOW THE ADMIN CONSOLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Switch to the Admin Console tab (http://localhost:8000/admin)
+
+  What to say:
+  "This is the Admin Override Console. When our engine HALTs or
+  flags a transaction for REVIEW, a compliance officer or fraud
+  analyst can see all the flagged transactions here in real time.
+  They can see the ML fraud probability, anomaly score, risk score,
+  and the exact reason the transaction was flagged."
+
+  Point to the table — it auto-refreshes every 4 seconds.
+
+  Click on any HALT row to open the detail panel.
+
+  What to say:
+  "If an analyst investigates and determines a HALT was a false
+  positive — for example, a high-value corporate buyer — they can
+  manually approve it with this button. The override is recorded
+  with a timestamp for the audit trail."
+
+  Click "Approve Transaction" on any HALT row.
+
+  "Now that transaction shows as APPROVED in the current status,
+  and the original decision is preserved for compliance records."
+
+Switch back to the Live Dashboard tab using the back arrow
+in the admin console header — the dashboard should still be
+running with live transactions.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 6 — SHOW API DOCS (OPTIONAL BONUS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Open http://localhost:8000/docs
+
+  What to say:
+  "This is our production-grade REST API built with FastAPI.
+  Any banking system can integrate SurgeGuard by sending a
+  transaction payload to POST /api/v1/evaluate. The response
+  comes back in under 7 milliseconds with a risk score,
+  decision, and explainable reasons. The context adapters
+  make it plug-and-play — you just supply your account IDs,
+  merchant categories, or geo data and the engine uses them
+  automatically."
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ KEY NUMBERS TO REMEMBER WHEN TALKING TO JURY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  96.57%   — friction-free clearance rate (real buyers approved)
+  78.1%    — fraud interception rate (bots blocked)
+  6.91 ms  — median decision latency (P50)
+  183,727  — maximum transactions per second (batch throughput)
+  0.9667   — ROC-AUC on unseen test data
+  0.4560   — PR-AUC on unseen test data (exceptional at 0.17% fraud)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ONE-LINE PITCH (memorize this)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"SurgeGuard proves that high transaction volume is NOT the same
+as fraud. We use a Tri-Signal Adaptive Risk Engine to protect
+genuine shoppers during flash sales while quarantining bot attacks
+in under 7 milliseconds."
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TROUBLESHOOTING QUICK FIXES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: Server crashes with "IsolationForest" error
+Fix: This was a bug — it has been fixed. Restart the server.
+     python run_server.py
+
+Problem: Dashboard goes blank when clicking Admin
+Fix: You opened admin.html from file explorer.
+     Always use http://localhost:8000 and http://localhost:8000/admin
+     Never open files directly from Windows file explorer.
+
+Problem: Admin shows ENGINE: OFFLINE
+Fix: The server is not running. Open a terminal and run:
+     python run_server.py
+
+Problem: No transactions in Admin panel
+Fix: Go to the Dashboard first and run the "Coordinated Attack"
+     scenario for 10-15 seconds. The HALT/REVIEW transactions
+     will then appear in the Admin panel automatically.
+
+Problem: "ModuleNotFoundError"
+Fix: Install missing package:
+     pip install fastapi uvicorn lightgbm numpy pandas python-dotenv
+
+Problem: Port already in use
+Fix: Another server is running. Find and kill it:
+     netstat -ano | findstr :8000
+     taskkill /PID <number shown> /F
+     Then restart: python run_server.py
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ GOOD LUCK AT THE YUVA MEGATHON!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

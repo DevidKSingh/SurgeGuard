@@ -30,6 +30,12 @@
 
     <!-- System Status Bar -->
     <div class="system-status">
+      <a id="adminConsoleLink" href="/admin" class="admin-console-link" title="Open Admin Override Console">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13" aria-hidden="true">
+          <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+        </svg>
+        Admin Console
+      </a>
       <span class="status-indicator-dot"></span>
       <span class="status-label">ENGINE:</span>
       <span id="engineStatusBadge" class="status-badge">ONLINE (0.8ms P50)</span>
@@ -297,6 +303,103 @@
         <div class="architecture-note">
           <strong>Key Architectural Principle:</strong> Missing demographic or relational fields are architectural limitations, never penalized as false fraud signals.
         </div>
+      </div>
+    </div>
+
+    <!-- Row 4: Admin Override Panel -->
+    <div class="admin-override-section">
+      <div class="glass-panel admin-panel">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title admin-panel-title">
+              <svg class="admin-panel-icon" viewBox="0 0 20 20" fill="currentColor" width="15" height="15" aria-hidden="true">
+                <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+              </svg>
+              Admin Transaction Override
+            </h3>
+            <p class="panel-subtitle">Search a HALT or REVIEW transaction by ID and approve if ML decision is incorrect</p>
+          </div>
+          <div class="badge-tag" id="adminOverrideCount">0 overrides issued</div>
+        </div>
+
+        <!-- Search Row -->
+        <div class="admin-search-row">
+          <div class="admin-search-input-wrap">
+            <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
+              <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+            </svg>
+            <input
+              id="adminTxIdInput"
+              class="admin-search-input"
+              type="text"
+              placeholder="Enter Transaction ID  (e.g. TX-172800-4291)"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+          <button id="adminSearchBtn" class="btn-admin-search">
+            <span id="adminSearchBtnLabel">Search</span>
+          </button>
+        </div>
+
+        <!-- Result Card (hidden until a lookup is performed) -->
+        <div id="adminResultCard" class="admin-result-card" style="display:none;">
+          <div class="admin-result-header">
+            <div class="admin-result-id-row">
+              <span class="admin-result-tx-id" id="adminResultTxId">—</span>
+              <span id="adminResultCurrentBadge" class="decision-badge halt">HALT</span>
+            </div>
+            <div class="admin-result-original-row">
+              <span class="admin-result-label">Original ML decision:</span>
+              <span id="adminResultOriginalDecision" class="admin-result-original-val">—</span>
+            </div>
+          </div>
+
+          <div class="admin-result-signals">
+            <div class="admin-signal-item">
+              <span class="admin-signal-label">ML Fraud Prob</span>
+              <span class="admin-signal-val" id="adminResML">—</span>
+            </div>
+            <div class="admin-signal-item">
+              <span class="admin-signal-label">Anomaly Score</span>
+              <span class="admin-signal-val" id="adminResAnomaly">—</span>
+            </div>
+            <div class="admin-signal-item">
+              <span class="admin-signal-label">Risk Score</span>
+              <span class="admin-signal-val" id="adminResRisk">—</span>
+            </div>
+            <div class="admin-signal-item">
+              <span class="admin-signal-label">Velocity Index</span>
+              <span class="admin-signal-val" id="adminResVelocity">—</span>
+            </div>
+            <div class="admin-signal-item">
+              <span class="admin-signal-label">Flagged At (UTC)</span>
+              <span class="admin-signal-val" id="adminResFlaggedAt">—</span>
+            </div>
+            <div class="admin-signal-item">
+              <span class="admin-signal-label">Admin Approved</span>
+              <span class="admin-signal-val" id="adminResApprovedStatus">No</span>
+            </div>
+          </div>
+
+          <div class="admin-result-reasons" id="adminResultReasonsWrap">
+            <span class="admin-result-label">ML Rationale:</span>
+            <ul id="adminResultReasonsList" class="admin-reasons-list"></ul>
+          </div>
+
+          <div class="admin-action-row">
+            <button id="adminApproveBtn" class="btn-admin-approve">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+              <span id="adminApproveBtnLabel">Approve Transaction</span>
+            </button>
+            <span id="adminApproveStatus" class="admin-approve-status"></span>
+          </div>
+        </div>
+
+        <!-- Error / Info message -->
+        <div id="adminMessage" class="admin-message" style="display:none;"></div>
       </div>
     </div>
   </main>

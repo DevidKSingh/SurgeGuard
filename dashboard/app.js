@@ -181,12 +181,76 @@ function generateTransaction(scenario) {
   };
 }
 
+// ── Shared localStorage store (works with or without the server) ─────────────
+const LS_KEY = 'surgeguard_flagged_txns';
+
+function getLocalFlaggedStore() {
+  try {
+    return JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+  } catch (_) { return []; }
+}
+
+function saveLocalFlaggedStore(entries) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(entries));
+  } catch (_) { /* quota exceeded - ignore */ }
+}
+
+/**
+ * Save a HALT or REVIEW transaction to localStorage immediately (so admin page
+ * can display it without requiring the server), then also try to sync to the API.
+ */
+function saveFlaggedTransaction(tx) {
+  // 1. Write to localStorage right away
+  const store = getLocalFlaggedStore();
+  const exists = store.some(t => t.transaction_id === tx.id);
+  if (!exists) {
+    store.unshift({
+      transaction_id:      tx.id,
+      original_decision:   tx.decision,
+      current_decision:    tx.decision,
+      risk_score:          parseFloat(tx.risk),
+      ml_fraud_prob:       parseFloat(tx.mlProb),
+      anomaly_score:       parseFloat(tx.anomaly),
+      velocity_surge_index: parseFloat(tx.velocity),
+      amount:              tx.amount,
+      reasons:             [tx.rationale],
+      flagged_at:          new Date().toISOString(),
+      approved_by_admin:   false,
+      approved_at:         null
+    });
+    if (store.length > 500) store.splice(500); // cap size
+    saveLocalFlaggedStore(store);
+  }
+
+  // 2. Background sync to API (fire-and-forget; never blocks the simulation)
+  fetch('/api/v1/admin/register', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      transaction_id:      tx.id,
+      decision:            tx.decision,
+      risk_score:          parseFloat(tx.risk),
+      ml_fraud_prob:       parseFloat(tx.mlProb),
+      anomaly_score:       parseFloat(tx.anomaly),
+      velocity_surge_index: parseFloat(tx.velocity),
+      amount:              tx.amount,
+      reasons:             [tx.rationale]
+    })
+  }).catch(() => {}); // silently ignore if server is offline
+}
+
 // Update UI with new transaction
 function processNextTransaction() {
   if (isPaused) return;
 
   const tx = generateTransaction(currentScenario);
   txCount++;
+
+  // Persist flagged transactions so admin page can find them
+  if (tx.decision === 'HALT' || tx.decision === 'REVIEW') {
+    saveFlaggedTransaction(tx);
+  }
 
   // Update counters
   if (tx.decision === 'APPROVE') approvedCount++;
@@ -269,3 +333,180 @@ function runSimulationLoop() {
 // Initial Kickoff
 drawLiveChart();
 runSimulationLoop();
+
+// =====================================================================
+// Admin Override Panel Controller
+// =====================================================================
+
+const API_BASE = window.location.origin;
+let adminOverrideCount = 0;
+
+const adminTxIdInput    = document.getElementById('adminTxIdInput');
+const adminSearchBtn    = document.getElementById('adminSearchBtn');
+const adminSearchLabel  = document.getElementById('adminSearchBtnLabel');
+const adminResultCard   = document.getElementById('adminResultCard');
+const adminMessage      = document.getElementById('adminMessage');
+const adminApproveBtn   = document.getElementById('adminApproveBtn');
+const adminApproveBtnLabel = document.getElementById('adminApproveBtnLabel');
+const adminApproveStatus   = document.getElementById('adminApproveStatus');
+const adminOverrideCountBadge = document.getElementById('adminOverrideCount');
+
+// Show / hide the inline message banner
+function showAdminMessage(text, type = 'error') {
+  adminMessage.textContent = text;
+  adminMessage.className = `admin-message ${type}`;
+  adminMessage.style.display = 'block';
+}
+function clearAdminMessage() {
+  adminMessage.style.display = 'none';
+  adminMessage.textContent = '';
+}
+
+// Render the result card with flagged transaction data
+function renderResultCard(tx) {
+  clearAdminMessage();
+
+  document.getElementById('adminResultTxId').textContent = tx.transaction_id;
+
+  const badge = document.getElementById('adminResultCurrentBadge');
+  badge.textContent = tx.current_decision;
+  badge.className = `decision-badge ${tx.current_decision.toLowerCase()}`;
+
+  document.getElementById('adminResultOriginalDecision').textContent = tx.original_decision;
+
+  document.getElementById('adminResML').textContent       = tx.ml_fraud_prob.toFixed(4);
+  document.getElementById('adminResAnomaly').textContent  = tx.anomaly_score.toFixed(4);
+  document.getElementById('adminResRisk').textContent     = tx.risk_score.toFixed(4);
+  document.getElementById('adminResVelocity').textContent = tx.velocity_surge_index.toFixed(4);
+
+  // Format timestamp readably
+  const flaggedDate = new Date(tx.flagged_at);
+  document.getElementById('adminResFlaggedAt').textContent = flaggedDate.toUTCString().replace('GMT', 'UTC');
+
+  const approvedStatusEl = document.getElementById('adminResApprovedStatus');
+  if (tx.approved_by_admin) {
+    approvedStatusEl.textContent = `Yes — ${new Date(tx.approved_at).toUTCString().replace('GMT', 'UTC')}`;
+    approvedStatusEl.style.color = 'var(--color-approved)';
+  } else {
+    approvedStatusEl.textContent = 'No';
+    approvedStatusEl.style.color = '';
+  }
+
+  // Populate ML rationale reasons
+  const list = document.getElementById('adminResultReasonsList');
+  list.innerHTML = '';
+  (tx.reasons || []).forEach(r => {
+    const li = document.createElement('li');
+    li.textContent = r;
+    list.appendChild(li);
+  });
+
+  // Toggle the approve button state
+  if (tx.approved_by_admin) {
+    adminApproveBtn.disabled = true;
+    adminApproveBtnLabel.textContent = 'Already Approved';
+    adminApproveStatus.textContent = '';
+  } else {
+    adminApproveBtn.disabled = false;
+    adminApproveBtnLabel.textContent = 'Approve Transaction';
+    adminApproveStatus.textContent = '';
+    // Attach the approval handler (replace previous one)
+    adminApproveBtn.onclick = () => handleAdminApprove(tx.transaction_id);
+  }
+
+  adminResultCard.style.display = 'block';
+}
+
+// Search handler
+async function handleAdminSearch() {
+  const txId = adminTxIdInput.value.trim();
+  if (!txId) {
+    showAdminMessage('Please enter a Transaction ID to search.', 'error');
+    return;
+  }
+
+  adminResultCard.style.display = 'none';
+  clearAdminMessage();
+  adminSearchBtn.disabled = true;
+  adminSearchLabel.textContent = 'Searching…';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/admin/transaction/${encodeURIComponent(txId)}`);
+    if (res.status === 404) {
+      showAdminMessage(
+        `Transaction "${txId}" not found. Only HALT or REVIEW transactions are stored. ` +
+        'Make sure the ID is exact (the feed must be running against the live API).',
+        'error'
+      );
+    } else if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      showAdminMessage(`API error ${res.status}: ${err.detail || res.statusText}`, 'error');
+    } else {
+      const tx = await res.json();
+      renderResultCard(tx);
+    }
+  } catch (e) {
+    showAdminMessage(
+      'Could not reach the SurgeGuard API. Make sure the server is running (python run_server.py).',
+      'error'
+    );
+  } finally {
+    adminSearchBtn.disabled = false;
+    adminSearchLabel.textContent = 'Search';
+  }
+}
+
+// Approve handler
+async function handleAdminApprove(txId) {
+  adminApproveBtn.disabled = true;
+  adminApproveBtnLabel.textContent = 'Approving…';
+  adminApproveStatus.textContent = '';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/admin/approve/${encodeURIComponent(txId)}`, {
+      method: 'POST',
+    });
+
+    if (res.status === 409) {
+      // Already approved
+      const err = await res.json();
+      adminApproveStatus.textContent = err.detail || 'Already approved.';
+      adminApproveBtnLabel.textContent = 'Already Approved';
+    } else if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      showAdminMessage(`Approve failed: ${err.detail || res.statusText}`, 'error');
+      adminApproveBtn.disabled = false;
+      adminApproveBtnLabel.textContent = 'Approve Transaction';
+    } else {
+      const result = await res.json();
+
+      // Update counter
+      adminOverrideCount++;
+      adminOverrideCountBadge.textContent = `${adminOverrideCount} override${adminOverrideCount !== 1 ? 's' : ''} issued`;
+
+      // Update badge in result card to APPROVE
+      const badge = document.getElementById('adminResultCurrentBadge');
+      badge.textContent = 'APPROVE';
+      badge.className = 'decision-badge approve';
+
+      const approvedStatusEl = document.getElementById('adminResApprovedStatus');
+      approvedStatusEl.textContent = `Yes — ${new Date(result.approved_at).toUTCString().replace('GMT', 'UTC')}`;
+      approvedStatusEl.style.color = 'var(--color-approved)';
+
+      adminApproveBtnLabel.textContent = 'Approved ✓';
+      adminApproveStatus.textContent = `Override recorded at ${new Date(result.approved_at).toLocaleTimeString()}`;
+
+      showAdminMessage(`✓ ${result.message}`, 'info');
+    }
+  } catch (e) {
+    showAdminMessage('Network error during approval. Is the server running?', 'error');
+    adminApproveBtn.disabled = false;
+    adminApproveBtnLabel.textContent = 'Approve Transaction';
+  }
+}
+
+// Wire up events
+adminSearchBtn.addEventListener('click', handleAdminSearch);
+adminTxIdInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleAdminSearch();
+});
