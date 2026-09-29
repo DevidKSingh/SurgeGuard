@@ -1,19 +1,18 @@
 # =============================================================
-# SurgeGuard .gitignore
+# SurgeGuard .gitignore — GitHub Submission Configuration
 # =============================================================
 
-# --- Secrets & Environment ---
+# --- Environment & Secrets ---
 .env
 *.env.local
 *.env.*.local
 
-# --- Python ---
+# --- Python Bytecode & Cache ---
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
 .Python
-*.egg
 *.egg-info/
 dist/
 build/
@@ -21,42 +20,38 @@ build/
 .venv/
 venv/
 env/
+
+# --- Databases & Logs ---
+*.db
+*.sqlite3
+feedback.db
+*.log
 pip-log.txt
 
-# --- ML Artifacts & Large Data ---
-*.pkl
-*.joblib
-*.h5
-*.pt
-*.pth
+# --- Datasets & Predictions (Prevents GitHub 100MB limit rejection) ---
+*.csv
+train_cleaned.csv
+test_cleaned.csv
 train.csv
 test.csv
 test_predictions.csv
+predictions.csv
 
-# --- Jupyter ---
+# --- Serialized Models ---
+# Ignore general pickles, but explicitly whitelist the required submission artifact
+*.pkl
+models/*.pkl
+!models/risk_engine_artifacts.pkl
+
+# --- Jupyter & IDEs ---
 .ipynb_checkpoints/
 *.ipynb
-
-# --- IDEs ---
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# --- OS ---
+# --- Operating System ---
 .DS_Store
 Thumbs.db
 desktop.ini
-
-# Datasets
-train.csv
-test.csv
-train_cleaned.csv
-test_cleaned.csv
-
-# Generated predictions
-test_predictions.csv
-
-# Python cache
-__pycache__/
-*.pyc

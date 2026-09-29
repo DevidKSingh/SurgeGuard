@@ -1,12 +1,13 @@
-﻿# SurgeGuard — Securing the Surge: Fraud Detection
-# Exact dependency versions required to reproduce results
+# ==============================================================================
+# SurgeGuard — Software Dependencies & Exact Environment Specification
+# ==============================================================================
 
-# Core ML & data
-lightgbm==4.7.0
+# Core Machine Learning & Data Processing
 numpy==2.5.3
 pandas==3.0.6
+lightgbm==4.7.0
 
-# API server (needed only to run src/api.py live dashboard)
+# Real-Time Inference API & Server Runtime
 fastapi==0.141.1
 uvicorn==0.54.0
 pydantic==2.13.5

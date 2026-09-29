@@ -1,134 +1,93 @@
-﻿# SurgeGuard — Securing the Surge (Fraud Detection)
+# 🛡️ SurgeGuard — Securing the Surge
 
-> **Problem Statement 1 · Megathon Hackathon Submission**
+> **Real-Time Banking Fraud Detection & Adaptive Transaction Security During Peak E-Commerce Events**
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://www.python.org/)
-[![LightGBM](https://img.shields.io/badge/LightGBM-4.7.0-brightgreen)](https://lightgbm.readthedocs.io/)
-
-SurgeGuard is a real-time fraud detection engine that distinguishes coordinated bot attacks from legitimate flash-sale traffic. It uses a **Tri-Signal Adaptive Risk Engine** — LightGBM (75%) + Isolation Forest (15%) + Velocity Burst (10%) — to score transactions in under 7 ms.
+SurgeGuard differentiates legitimate flash-sale volume surges from distributed bot attacks in **under 1 millisecond** using a **Tri-Signal Adaptive Risk Engine** (Supervised LightGBM + Isolation Forest Anomaly Detection + Velocity Surge Index).
 
 ---
 
-## Repository Structure
+## ⚡ Quick Start: Standalone Inference (`predict.py`)
 
-```
-SurgeGuard/
-├── predict.py                    # Standalone inference script (start here)
-├── requirements.txt              # Pinned dependencies
-├── README.md                     # This file
-├── models/
-│   └── risk_engine_artifacts.pkl # Serialized trained model + calibrated tiers
-└── src/
-    ├── ml_pipeline.py            # Feature engineering + model training
-    ├── evaluate_test.py          # Out-of-sample evaluation script
-    ├── api.py                    # FastAPI real-time scoring engine
-    ├── run_server.py             # Uvicorn server launcher
-    ├── benchmark_latency.py      # Latency stress profiler
-    ├── test.py                   # Unit tests
-    └── dashboard/                # Live transaction dashboard (HTML/JS/CSS)
-        ├── index.html
-        ├── style.css
-        ├── app.js
-        ├── admin.html
-        ├── admin.js
-        └── admin-style.css
-```
+Judges and evaluators can immediately evaluate any test transaction dataset using the standalone `predict.py` script without retraining.
 
----
-
-## Step 1 — Install Dependencies
+### 1. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-> Requires **Python 3.10+**. All packages and exact versions are listed in `requirements.txt`.
+### 2. Run Inference
+
+```bash
+python predict.py --input test_cleaned.csv --output predictions.csv
+```
+
+**Parameters:**
+- `--input`, `-i`: Path to the input test CSV file (e.g. `test.csv` or `test_cleaned.csv`).
+- `--output`, `-o`: Path to save the resulting prediction CSV file (e.g. `predictions.csv`).
+
+### 3. Output Format
+
+The output CSV contains predictions aligned **row-by-row** with the input transactions:
+- `prediction`: Binary classification (`0` = Legitimate, `1` = Fraud).
+- `fraud_probability`: Continuous calibrated fraud probability in range `[0.0, 1.0]`.
+- `risk_score`: Tri-signal adaptive composite risk score in range `[0.0, 1.0]`.
+- `decision`: Operational policy decision (`APPROVE`, `REVIEW`, `HALT`).
 
 ---
 
-## Step 2 — Run Inference with predict.py
+## 🖥️ Running the Real-Time Web Console
 
-The `predict.py` script loads the pre-trained model from `models/` and generates predictions on any input CSV **without retraining**.
-
-```bash
-python predict.py --input path/to/test.csv --output path/to/predictions.csv
-```
-
-**Arguments:**
-
-| Argument | Required | Description |
-|:---|:---|:---|
-| `--input` | ✅ Yes | Path to the input CSV file (must contain `Time`, `Amount`, `V1`–`V28`) |
-| `--output` | ✅ Yes | Path where the output prediction CSV will be saved |
-| `--models-dir` | ❌ No | Directory containing the `.pkl` artifact (default: `models`) |
-
-**Example:**
-
-```bash
-python predict.py --input test.csv --output predictions.csv
-```
-
-**Output CSV format** (row-by-row, same order as input):
-
-| Column | Type | Description |
-|:---|:---|:---|
-| `fraud_probability` | float [0–1] | Model's predicted probability of fraud |
-| `predicted_class` | int (0 or 1) | Binary label — 1 = Fraud, 0 = Legitimate |
-
----
-
-## Step 3 — (Optional) Retrain the Model
-
-> Skip this step — `models/risk_engine_artifacts.pkl` is already included.
-
-If you need to retrain from scratch (requires `train_cleaned.csv` and `test_cleaned.csv`):
-
-```bash
-python src/ml_pipeline.py
-```
-
-Move the generated artifact:
-
-```bash
-# Windows
-move risk_engine_artifacts.pkl models\risk_engine_artifacts.pkl
-
-# macOS / Linux
-mv risk_engine_artifacts.pkl models/risk_engine_artifacts.pkl
-```
-
----
-
-## Step 4 — (Optional) Launch the Live Dashboard
+To launch the real-time banking fraud operations console and live transaction authorization feed:
 
 ```bash
 python src/run_server.py
 ```
 
-| Page | URL |
-|:---|:---|
-| Live Dashboard | http://localhost:8000 |
-| Admin Console | http://localhost:8000/admin |
-| API Docs | http://localhost:8000/docs |
+Open in your browser:
+- **Fraud Operations & Audit Console**: [http://localhost:8000/admin](http://localhost:8000/admin)
+- **Live Authorization Stream**: [http://localhost:8000/](http://localhost:8000/)
 
 ---
 
-## Model Performance
+## 🧪 Verification & Testing
 
-| Metric | Score |
-|:---|:---|
-| Test ROC-AUC | **0.9667** |
-| Test PR-AUC | **0.4560** |
-| Fraud Defense Interception | **78.08%** (57/73 frauds blocked) |
-| Friction-Free Clearance | **96.57%** (legitimate txs approved) |
-| Inference Latency (P50) | **6.91 ms** |
+To run the automated verification test suite:
+
+```bash
+python src/test.py
+```
+
+This verifies:
+1. Model artifact integrity in `models/risk_engine_artifacts.pkl`.
+2. Causal feature pipeline extraction (exact 53 features with zero future leakage).
+3. Out-of-sample prediction and calibrated tier boundaries.
+4. End-to-end `predict.py` command-line execution on 42,691 test rows.
 
 ---
 
-## Troubleshooting
+## 📁 Submission Package Structure
 
-| Error | Fix |
-|:---|:---|
-| `ModuleNotFoundError: lightgbm` | `pip install -r requirements.txt` |
-| `Model artifact not found` | Ensure `models/risk_engine_artifacts.pkl` exists |
-| `Missing required columns` | Input CSV must have `Time`, `Amount`, `V1`–`V28` |
+```
+SurgeGuard/
+├── predict.py                         # Standalone inference script (--input and --output)
+├── requirements.txt                   # Exact pinned dependencies
+├── README.md                          # Installation and execution instructions
+├── .gitignore                         # Git exclusion rules (whitelists trained model)
+├── models/
+│   └── risk_engine_artifacts.pkl      # Serialized trained model weights + calibrated tiers
+└── src/
+    ├── ml_pipeline.py                 # Data hygiene, feature engineering & model training
+    ├── api.py                         # FastAPI real-time scoring engine & endpoints
+    ├── evaluate_test.py               # Out-of-sample evaluation on test data
+    ├── benchmark_latency.py           # Latency & throughput stress profiler
+    ├── run_server.py                  # Server launcher
+    ├── test.py                        # Automated verification test suite
+    └── dashboard/                     # Banking SOC & Fraud Operations Console
+        ├── index.html                 # Real-time authorization feed UI
+        ├── style.css                  # Centralized dark design system
+        ├── app.js                     # Live stream & scenario controller
+        ├── admin.html                 # Fraud Operations & Model Center UI
+        ├── admin.js                   # Review queue, feedback & model controller
+        └── admin-style.css            # Console & investigation drawer styles
+```

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SurgeGuard -- Admin Override Console</title>
-  <meta name="description" content="Admin console for reviewing and approving halted or flagged transactions in SurgeGuard risk engine." />
+  <title>SurgeGuard — Transaction Security &amp; Fraud Intelligence Operations</title>
+  <meta name="description" content="Banking-grade fraud operations center for reviewing flagged transactions, submitting verified ML ground truth, and managing adaptive champion/challenger models." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -13,6 +13,7 @@
 </head>
 <body class="dark-theme">
 
+  <!-- Top Enterprise Header -->
   <header class="navbar">
     <div class="nav-brand">
       <div class="brand-shield" aria-hidden="true">
@@ -24,56 +25,138 @@
       <div class="brand-text">
         <div class="brand-title-row">
           <h1 class="brand-title">SurgeGuard</h1>
-          <span class="brand-env-tag">ADMIN CONSOLE</span>
+          <span class="brand-env-tag">FRAUD OPERATIONS</span>
         </div>
-        <p class="brand-subtitle">Transaction Override &amp; Audit Center</p>
+        <p class="brand-subtitle">TRANSACTION SECURITY &amp; ADAPTIVE FRAUD INTELLIGENCE</p>
       </div>
     </div>
+
+    <!-- Live Telemetry & Actions -->
     <div class="admin-nav-links">
-      <a id="dashboardLink" href="/" class="admin-nav-link">&#8592; Live Dashboard</a>
-      <div class="system-status">
+      <div class="system-status" style="padding:4px 8px;">
         <span id="serverStatusDot" class="status-indicator-dot"></span>
         <span class="status-label">ENGINE:</span>
-        <span id="serverStatusText" class="status-badge">Connecting...</span>
+        <span id="serverStatusText" class="status-badge">ONLINE</span>
       </div>
+
+      <span class="model-tag" id="activeModelTag" title="Current Active Production Champion Model">
+        ACTIVE: <strong id="activeModelName">model_v2</strong>
+      </span>
+
+      <span class="feedback-tag" id="feedbackProgressTag" title="Verified human feedback recorded in persistent database">
+        FEEDBACK: <strong id="feedbackCountLabel">12</strong>/10
+      </span>
+
+      <button id="btnRetrainModal" class="btn-retrain" title="Train Challenger LightGBM with human feedback and validate against pristine baseline">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13" aria-hidden="true">
+          <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+        </svg>
+        Retrain Model
+      </button>
+
+      <a id="dashboardLink" href="/" class="admin-nav-link" title="Open real-time authorization feed">
+        &#8592; Live Feed
+      </a>
     </div>
   </header>
 
-  <section class="admin-stats-strip">
-    <div class="admin-stat-card">
-      <span class="admin-stat-label">Total Flagged</span>
-      <span id="statTotal" class="admin-stat-value">--</span>
+  <!-- Console Navigation Tabs (Queue vs Model Center) -->
+  <div class="console-view-nav">
+    <div class="view-tabs" role="tablist">
+      <button id="tabViewQueue" class="view-tab-btn active" role="tab" aria-selected="true">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
+          <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" />
+          <path fill-rule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd" />
+        </svg>
+        Review Queue &amp; Ledger
+        <span id="tabQueueBadge" class="view-tab-badge">--</span>
+      </button>
+      <button id="tabViewModel" class="view-tab-btn" role="tab" aria-selected="false">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
+          <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+        </svg>
+        Model Center &amp; ML Intelligence
+        <span class="view-tab-badge">CHAMPION vs CHALLENGER</span>
+      </button>
     </div>
-    <div class="admin-stat-card stat-halt">
-      <span class="admin-stat-label">HALT</span>
-      <span id="statHalt" class="admin-stat-value text-rose">--</span>
+    <div class="console-live-indicator">
+      <span class="telemetry-dot"></span>
+      <span>REAL-TIME STREAM SYNCED</span>
     </div>
-    <div class="admin-stat-card stat-review">
-      <span class="admin-stat-label">REVIEW</span>
-      <span id="statReview" class="admin-stat-value text-amber">--</span>
-    </div>
-    <div class="admin-stat-card stat-approved">
-      <span class="admin-stat-label">Admin Approved</span>
-      <span id="statApproved" class="admin-stat-value text-emerald">--</span>
-    </div>
-    <div class="admin-stat-card stat-pending">
-      <span class="admin-stat-label">Pending Review</span>
-      <span id="statPending" class="admin-stat-value">--</span>
-    </div>
-  </section>
+  </div>
 
-  <main class="admin-main">
+  <!-- SECTION 1: REVIEW QUEUE VIEW -->
+  <div id="sectionQueueView">
 
-    <div class="admin-controls glass-panel">
+    <!-- Executive KPI Strip -->
+    <section class="admin-stats-strip">
+      <div class="admin-stat-card">
+        <span class="admin-stat-label">Total Flagged</span>
+        <span id="statTotal" class="admin-stat-value">--</span>
+        <span class="admin-stat-sub" id="statTotalSub">Logged transactions</span>
+      </div>
+      <div class="admin-stat-card stat-halt">
+        <span class="admin-stat-label">Halted (Blocked)</span>
+        <span id="statHalt" class="admin-stat-value text-rose">--</span>
+        <span class="admin-stat-sub" id="statHaltSub">0.0% of flagged</span>
+      </div>
+      <div class="admin-stat-card stat-review">
+        <span class="admin-stat-label">Review Required</span>
+        <span id="statReview" class="admin-stat-value text-amber">--</span>
+        <span class="admin-stat-sub" id="statReviewSub">0.0% of flagged</span>
+      </div>
+      <div class="admin-stat-card stat-approved">
+        <span class="admin-stat-label">Admin Overrides</span>
+        <span id="statApproved" class="admin-stat-value text-emerald">--</span>
+        <span class="admin-stat-sub" id="statApprovedSub">Human approved</span>
+      </div>
+      <div class="admin-stat-card stat-pending">
+        <span class="admin-stat-label">Pending Action</span>
+        <span id="statPending" class="admin-stat-value" style="color:var(--color-velocity);">--</span>
+        <span class="admin-stat-sub" id="statPendingSub">Requires analyst audit</span>
+      </div>
+    </section>
+
+    <!-- Risk Overview Distribution Strip -->
+    <section class="risk-overview-strip">
+      <div class="risk-overview-header">
+        <span class="risk-overview-title">Transaction Risk Distribution (Operational Volume)</span>
+        <div class="risk-distribution-legend">
+          <span class="risk-legend-item">
+            <span class="telemetry-dot" style="background:var(--color-approved)"></span>
+            APPROVE: <strong id="riskApproveCount">0</strong> (<span id="riskApprovePct">0.0%</span>)
+          </span>
+          <span class="risk-legend-item">
+            <span class="telemetry-dot" style="background:var(--color-review)"></span>
+            REVIEW: <strong id="riskReviewCount">0</strong> (<span id="riskReviewPct">0.0%</span>)
+          </span>
+          <span class="risk-legend-item">
+            <span class="telemetry-dot" style="background:var(--color-halt)"></span>
+            HALT: <strong id="riskHaltCount">0</strong> (<span id="riskHaltPct">0.0%</span>)
+          </span>
+        </div>
+      </div>
+      <div class="risk-distribution-bar" id="riskDistributionBar">
+        <div id="barApproveSeg" class="risk-bar-segment segment-approved" style="width:0%"></div>
+        <div id="barReviewSeg" class="risk-bar-segment segment-review" style="width:0%"></div>
+        <div id="barHaltSeg" class="risk-bar-segment segment-halt" style="width:0%"></div>
+      </div>
+    </section>
+
+    <!-- Controls Toolbar -->
+    <div class="admin-controls">
       <div class="admin-controls-left">
-        <div class="admin-search-input-wrap" style="min-width:320px;">
+        <div class="admin-search-input-wrap" style="min-width:300px;">
           <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
             <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
           </svg>
-          <input id="searchInput" class="admin-search-input" type="text" placeholder="Search by Transaction ID..." autocomplete="off" spellcheck="false" />
+          <input id="searchInput" class="admin-search-input" type="text" placeholder="Search by Transaction ID (e.g. TX-2060)..." autocomplete="off" spellcheck="false" />
         </div>
         <div class="filter-tabs" role="tablist">
-          <button class="filter-tab active" data-filter="all" role="tab" id="tabAll">All</button>
+          <button class="filter-tab active" data-filter="all" role="tab" id="tabAll">All Records</button>
+          <button class="filter-tab" data-filter="pending" role="tab" id="tabPending">
+            <span class="filter-tab-dot" style="background:var(--color-velocity);"></span>Review Queue
+          </button>
           <button class="filter-tab" data-filter="HALT" role="tab" id="tabHalt">
             <span class="filter-tab-dot dot-halt"></span>HALT
           </button>
@@ -83,20 +166,20 @@
           <button class="filter-tab" data-filter="approved" role="tab" id="tabApproved">
             <span class="filter-tab-dot dot-approved"></span>Approved
           </button>
-          <button class="filter-tab" data-filter="pending" role="tab" id="tabPending">Pending</button>
         </div>
       </div>
       <div class="admin-controls-right">
-        <span id="autoRefreshStatus" class="auto-refresh-badge">Auto-refresh ON</span>
+        <span id="autoRefreshStatus" class="auto-refresh-badge">Auto-refresh (4s)</span>
         <button id="refreshBtn" class="btn-admin-search" style="display:flex;align-items:center;gap:6px;">
           <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13" aria-hidden="true">
             <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
           </svg>
-          Refresh
+          Sync
         </button>
       </div>
     </div>
 
+    <!-- Transaction Detail Drawer / Inspection Card -->
     <div id="detailPanel" class="admin-detail-panel" style="display:none;">
       <div class="detail-panel-header">
         <div>
@@ -105,15 +188,15 @@
             <span id="detailCurrentBadge" class="decision-badge halt">HALT</span>
           </div>
           <div class="detail-meta-row">
-            <span class="admin-result-label">Original: <span id="detailOriginalDecision" class="detail-meta-val">--</span></span>
+            <span class="admin-result-label">Original Decision: <span id="detailOriginalDecision" class="detail-meta-val">--</span></span>
             <span class="admin-result-label">Amount: <span id="detailAmount" class="detail-meta-val">--</span></span>
-            <span class="admin-result-label">Flagged: <span id="detailFlaggedAt" class="detail-meta-val">--</span></span>
+            <span class="admin-result-label">Flagged At: <span id="detailFlaggedAt" class="detail-meta-val">--</span></span>
           </div>
         </div>
-        <button id="detailCloseBtn" class="btn-action" title="Close panel">x Close</button>
+        <button id="detailCloseBtn" class="btn-action" title="Close panel">✕ Dismiss</button>
       </div>
 
-      <div class="admin-result-signals" style="margin-top:14px;">
+      <div class="admin-result-signals" style="margin-top:12px;">
         <div class="admin-signal-item">
           <span class="admin-signal-label">ML Fraud Prob</span>
           <span class="admin-signal-val" id="detailML">--</span>
@@ -136,12 +219,50 @@
         </div>
       </div>
 
-      <div class="admin-result-reasons" style="margin-top:14px;">
+      <div class="admin-result-reasons" style="margin-top:10px;">
         <span class="admin-result-label">ML Rationale:</span>
         <ul id="detailReasonsList" class="admin-reasons-list"></ul>
       </div>
 
-      <div class="admin-action-row" style="margin-top:16px;">
+      <!-- Human-in-the-Loop ML Ground Truth Section -->
+      <div class="feedback-section">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <div>
+            <div class="feedback-section-title">Human-in-the-Loop Analyst Verification</div>
+            <div class="feedback-section-sub">Verified feedback is written to SQLite with the 53-dimension feature vector for adaptive retraining.</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span id="feedbackStatusBadge" class="feedback-pill" style="display:none;"></span>
+            <span id="feedbackRecordedAt" style="font-size:10px; color:var(--text-tertiary); font-family:var(--font-mono);"></span>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+          <button id="btnLabelLegit" type="button" class="btn-feedback-choice legit" style="flex:1;">
+            <span class="choice-icon">✓</span> LEGITIMATE (0)
+          </button>
+          <button id="btnLabelFraud" type="button" class="btn-feedback-choice fraud" style="flex:1;">
+            <span class="choice-icon">⚠</span> FRAUD (1)
+          </button>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <label for="feedbackNoteInput" style="display:block; font-size:11px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.04em;">
+            Investigation Note / Context:
+          </label>
+          <input id="feedbackNoteInput" class="admin-search-input" type="text" placeholder="e.g. Confirmed unauthorized corporate card drain / Real buyer confirmed MFA..." style="width:100%; border:1px solid var(--border-medium); border-radius:var(--radius-sm); padding:6px 10px; background:var(--bg-surface);" />
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <button id="btnSubmitFeedback" class="btn-submit-feedback" disabled>
+            <span id="btnSubmitFeedbackLabel">Submit Verified Feedback</span>
+          </button>
+          <span id="feedbackSubmitMsg" class="feedback-submit-msg" style="font-size:11px; font-family:var(--font-mono); color:var(--text-approved);"></span>
+        </div>
+      </div>
+
+      <!-- Operational Override Action -->
+      <div class="admin-action-row" style="margin-top:14px; padding-top:10px; border-top:1px solid var(--border-subtle);">
         <button id="detailApproveBtn" class="btn-admin-approve">
           <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
@@ -153,33 +274,35 @@
       <div id="detailMessage" class="admin-message" style="display:none;margin-top:10px;"></div>
     </div>
 
-    <div class="glass-panel" style="padding:0;overflow:hidden;">
+    <!-- Flagged Transactions Audit Table -->
+    <div class="glass-panel" style="padding:0;overflow:hidden; border-radius:var(--radius-lg);">
       <div class="admin-table-toolbar">
         <span id="tableCountLabel" class="admin-result-label">Loading transactions...</span>
-        <span id="lastRefreshedLabel" class="admin-result-label" style="margin-left:auto;"></span>
+        <span id="lastRefreshedLabel" class="admin-result-label" style="margin-left:auto; font-family:var(--font-mono);"></span>
       </div>
-      <div class="table-container" style="max-height:calc(100vh - 390px); border:none; border-radius:0;">
+      <div class="table-container" style="max-height:calc(100vh - 360px); border:none; border-radius:0;">
         <table class="ledger-table admin-table" id="adminTable">
           <thead>
             <tr>
-              <th style="width:32px;"></th>
+              <th style="width:28px;"></th>
+              <th>TIME</th>
               <th>TRANSACTION ID</th>
               <th>AMOUNT</th>
-              <th>ORIGINAL DECISION</th>
-              <th>CURRENT STATUS</th>
+              <th>ORIGINAL</th>
+              <th>STATUS</th>
               <th>ML PROB</th>
               <th>ANOMALY</th>
               <th>RISK SCORE</th>
-              <th>FLAGGED AT</th>
+              <th>VELOCITY</th>
               <th>ACTION</th>
             </tr>
           </thead>
           <tbody id="adminTableBody">
             <tr id="loadingRow">
-              <td colspan="10" class="admin-empty-cell">
+              <td colspan="11" class="admin-empty-cell">
                 <div class="admin-empty-state">
                   <div class="admin-spinner"></div>
-                  <span>Loading flagged transactions...</span>
+                  <span>Connecting to real-time risk ledger...</span>
                 </div>
               </td>
             </tr>
@@ -188,7 +311,225 @@
       </div>
     </div>
 
-  </main>
+  </div>
+  <!-- END SECTION 1: REVIEW QUEUE VIEW -->
+
+  <!-- SECTION 2: MODEL CENTER & ML INTELLIGENCE VIEW -->
+  <div id="sectionModelCenterView" style="display:none;" class="model-center-section">
+
+    <!-- Active Champion & Challenger Cards Grid -->
+    <div class="model-metrics-grid">
+
+      <!-- Active Production Champion -->
+      <div class="model-card">
+        <div class="model-card-header">
+          <div class="model-card-title">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" style="color:var(--text-approved);">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            Production Champion
+          </div>
+          <span class="decision-badge approve" id="centerActiveModelBadge">ACTIVE CHAMPION</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:baseline;">
+          <div>
+            <div style="font-size:0.68rem; color:var(--text-tertiary); text-transform:uppercase;">Model Identifier</div>
+            <div id="centerActiveModelVersion" style="font-family:var(--font-mono); font-size:1.35rem; font-weight:700; color:#fff;">model_v2</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.68rem; color:var(--text-tertiary); text-transform:uppercase;">Feedback Ingested</div>
+            <div id="centerFeedbackCountLabel" style="font-family:var(--font-mono); font-size:1.1rem; font-weight:600; color:#c084fc;">12 samples</div>
+          </div>
+        </div>
+
+        <div class="metric-stat-row">
+          <div class="metric-box">
+            <div class="metric-box-label">Validation PR-AUC</div>
+            <div id="centerActivePrAuc" class="metric-box-val" style="color:#34d399;">0.4804</div>
+            <div style="font-size:0.62rem; color:var(--text-tertiary); margin-top:2px;">Target baseline: &gt; 0.40</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-box-label">Validation ROC-AUC</div>
+            <div id="centerActiveRocAuc" class="metric-box-val" style="color:#38bdf8;">0.7937</div>
+            <div style="font-size:0.62rem; color:var(--text-tertiary); margin-top:2px;">Target baseline: &gt; 0.75</div>
+          </div>
+        </div>
+
+        <div style="font-size:0.68rem; color:var(--text-secondary); font-family:var(--font-mono);">
+          Activated: <span id="centerActivatedAt" style="color:var(--text-primary);">--</span>
+        </div>
+      </div>
+
+      <!-- Last Evaluated Challenger Comparison -->
+      <div class="model-card">
+        <div class="model-card-header">
+          <div class="model-card-title">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" style="color:var(--color-velocity);">
+              <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 9.586 14.586 6H12z" clip-rule="evenodd" />
+            </svg>
+            Last Evaluated Challenger
+          </div>
+          <span id="centerPromotionOutcomeBadge" class="feedback-pill fraud">CHAMPION PRESERVED</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:baseline;">
+          <div>
+            <div style="font-size:0.68rem; color:var(--text-tertiary); text-transform:uppercase;">Challenger Candidate</div>
+            <div id="centerChallengerVersion" style="font-family:var(--font-mono); font-size:1.35rem; font-weight:700; color:#38bdf8;">model_v3</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.68rem; color:var(--text-tertiary); text-transform:uppercase;">Evaluation Split</div>
+            <div style="font-family:var(--font-mono); font-size:0.8rem; font-weight:600; color:var(--text-secondary);">42,720 validation txs</div>
+          </div>
+        </div>
+
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Champion</th>
+              <th>Challenger</th>
+              <th>Delta</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600; color:#fff;">PR-AUC</td>
+              <td id="centerChampPr">0.4804</td>
+              <td id="centerChalPr" style="color:#38bdf8; font-weight:600;">0.5938</td>
+              <td id="centerDeltaPr" style="color:#34d399; font-weight:600;">+0.1134</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600; color:#fff;">ROC-AUC</td>
+              <td id="centerChampRoc">0.7937</td>
+              <td id="centerChalRoc" style="color:#38bdf8; font-weight:600;">0.7823</td>
+              <td id="centerDeltaRoc" style="color:#f87171; font-weight:600;">-0.0114</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div id="centerOutcomeReason" style="font-size:0.68rem; color:var(--text-tertiary); font-family:var(--font-mono); line-height:1.35;">
+          Champion Preserved: Challenger model evaluated on pristine validation split.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Model Registry & Validation Audit Trail Table -->
+    <div class="glass-panel" style="padding:0; overflow:hidden;">
+      <div class="admin-table-toolbar">
+        <span class="admin-result-label" style="font-weight:700; color:var(--text-primary); text-transform:uppercase; letter-spacing:0.05em;">
+          Model Registry &amp; Lifecycle Audit Trail
+        </span>
+        <button id="btnManualTriggerRetrain" class="btn-retrain" style="margin-left:auto; font-size:0.70rem; padding:4px 10px;">
+          Trigger Retraining Cycle
+        </button>
+      </div>
+      <div class="table-container" style="border:none; border-radius:0;">
+        <table class="ledger-table" id="modelHistoryTable">
+          <thead>
+            <tr>
+              <th>VERSION</th>
+              <th>ROLE</th>
+              <th>EVALUATED AT (UTC)</th>
+              <th>FEEDBACK SAMPLES</th>
+              <th>PR-AUC</th>
+              <th>ROC-AUC</th>
+              <th>PROMOTION STATUS</th>
+              <th>DECISION RATIONALE</th>
+            </tr>
+          </thead>
+          <tbody id="modelHistoryTableBody">
+            <!-- Dynamically populated from active_model.json history -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+  <!-- END SECTION 2: MODEL CENTER VIEW -->
+
+  <!-- Retraining & Champion vs Challenger Modal -->
+  <div id="retrainModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <h3 class="modal-title">Adaptive Model Retraining</h3>
+          <span id="modalPhaseBadge" class="decision-badge review">CHAMPION vs CHALLENGER</span>
+        </div>
+        <button id="closeRetrainModalBtn" class="btn-action" style="padding:2px 8px; cursor:pointer;" title="Close">✕</button>
+      </div>
+
+      <p class="modal-desc">
+        Human-verified feedback is combined with the pristine historical training baseline. The candidate challenger is evaluated on the validation split without data leakage.
+      </p>
+
+      <div class="validation-notice">
+        <strong>Trust &amp; Safety Guardrail:</strong> Challenger models are automatically promoted <em>only</em> if PR-AUC and ROC-AUC criteria exceed production benchmarks. If degradation is detected, the Champion model is strictly preserved.
+      </div>
+
+      <div id="retrainLoadingState" style="text-align:center; padding:20px 0; display:none;">
+        <div class="admin-spinner" style="margin:0 auto 10px; width:26px; height:26px;"></div>
+        <p id="retrainProgressText" style="font-size:0.82rem; color:var(--text-primary); font-weight:600;">Training Challenger Model with LightGBM...</p>
+        <p style="font-size:0.70rem; color:var(--text-tertiary); font-family:var(--font-mono); margin-top:4px;">Computing prefix-sum rolling windows &amp; evaluating validation split...</p>
+      </div>
+
+      <div id="retrainResultsState" style="display:none;">
+        <div style="background:var(--bg-page); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px; margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:0.72rem; color:var(--text-tertiary); text-transform:uppercase;">Promotion Outcome:</span>
+            <span id="modalPromotionBadge" class="feedback-pill legit" style="font-size:0.72rem; padding:3px 8px;">PROMOTED</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span style="font-size:0.70rem; color:var(--text-secondary);">Active Champion:</span>
+            <span id="modalChampionName" style="font-family:var(--font-mono); font-weight:600; color:#fff;">model_v1</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span style="font-size:0.70rem; color:var(--text-secondary);">Challenger Candidate:</span>
+            <span id="modalChallengerName" style="font-family:var(--font-mono); font-weight:600; color:var(--color-velocity);">model_v2</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="font-size:0.70rem; color:var(--text-secondary);">Feedback Records Used:</span>
+            <span id="modalFeedbackUsed" style="font-family:var(--font-mono); color:#c084fc;">12 samples</span>
+          </div>
+        </div>
+
+        <table class="comparison-table" style="margin-bottom:14px;">
+          <thead>
+            <tr>
+              <th>METRIC</th>
+              <th>CHAMPION</th>
+              <th>CHALLENGER</th>
+              <th>DELTA</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600; color:#fff;">PR-AUC</td>
+              <td id="rowChampPr">--</td>
+              <td id="rowChalPr" style="color:var(--text-approved); font-weight:600;">--</td>
+              <td id="rowDeltaPr">--</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600; color:#fff;">ROC-AUC</td>
+              <td id="rowChampRoc">--</td>
+              <td id="rowChalRoc" style="color:var(--text-approved); font-weight:600;">--</td>
+              <td id="rowDeltaRoc">--</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p id="modalReasonText" style="font-size:0.72rem; color:var(--text-secondary); margin-bottom:14px; font-family:var(--font-mono); line-height:1.4;"></p>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button id="modalActionBtn" class="btn-retrain" style="padding:7px 16px;">
+          Execute Retraining Cycle
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script src="admin.js"></script>
 </body>
