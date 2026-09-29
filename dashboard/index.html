@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Securing the Surge — Real-Time Transaction Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="dark-theme">
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="brand-shield" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title-row">
+          <h1 class="brand-title">SurgeGuard</h1>
+          <span class="brand-env-tag">PRODUCTION</span>
+        </div>
+        <p class="brand-subtitle">Real-Time Transaction Risk Engine & Adaptive Bot Defense</p>
+      </div>
+    </div>
+
+    <!-- System Status Bar -->
+    <div class="system-status">
+      <span class="status-indicator-dot"></span>
+      <span class="status-label">ENGINE:</span>
+      <span id="engineStatusBadge" class="status-badge">ONLINE (0.8ms P50)</span>
+    </div>
+  </header>
+
+  <!-- Scenario Control Center Banner -->
+  <section class="scenario-panel">
+    <div class="scenario-header">
+      <div class="scenario-intro">
+        <div class="scenario-tag">Scenario</div>
+      </div>
+      <div class="scenario-buttons" role="tablist">
+        <button id="btnScenarioNormal" class="btn-scenario active" data-scenario="normal" role="tab" aria-selected="true">
+          <div class="btn-scenario-indicator"></div>
+          <div class="btn-content">
+            <span class="scenario-btn-name">Baseline Flow</span>
+            <span class="scenario-btn-desc">15 TPS • Nominal Shopping</span>
+          </div>
+        </button>
+        <button id="btnScenarioFlashSale" class="btn-scenario" data-scenario="flash_sale" role="tab" aria-selected="false">
+          <div class="btn-scenario-indicator indicator-surge"></div>
+          <div class="btn-content">
+            <span class="scenario-btn-name">Flash Sale Surge</span>
+            <span class="scenario-btn-desc">120+ TPS • 0 False Declines</span>
+          </div>
+        </button>
+        <button id="btnScenarioBotAttack" class="btn-scenario" data-scenario="bot_attack" role="tab" aria-selected="false">
+          <div class="btn-scenario-indicator indicator-attack"></div>
+          <div class="btn-content">
+            <span class="scenario-btn-name">Coordinated Attack</span>
+            <span class="scenario-btn-desc">Distributed Blitz • Active Quarantine</span>
+          </div>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Metrics Dashboard Grid -->
+  <main class="dashboard-grid">
+    <!-- Row 1: KPI Summary Cards -->
+    <div class="kpi-row">
+      <div class="kpi-card" id="cardTps">
+        <div class="kpi-header">
+          <span class="kpi-label">Tx velocity</span>
+          <span class="kpi-chip speed">LIVE</span>
+        </div>
+        <div class="kpi-value-row">
+          <span id="kpiTpsValue" class="kpi-number">18.4</span>
+          <span class="kpi-unit">TPS</span>
+        </div>
+        <div class="progress-bar-container">
+          <div id="kpiTpsBar" class="progress-bar-fill" style="width: 15%"></div>
+        </div>
+        <span class="kpi-meta" id="kpiTpsMeta">Within normal nominal envelope</span>
+      </div>
+
+      <div class="kpi-card" id="cardApprovals">
+        <div class="kpi-header">
+          <span class="kpi-label">Approved</span>
+          <span class="kpi-chip approved">99.82%</span>
+        </div>
+        <div class="kpi-value-row">
+          <span id="kpiApprovedCount" class="kpi-number">4,281</span>
+          <span class="kpi-unit">TXS</span>
+        </div>
+        <span class="kpi-meta text-emerald">Zero legitimate shoppers delayed</span>
+      </div>
+
+      <div class="kpi-card" id="cardReviews">
+        <div class="kpi-header">
+          <span class="kpi-label">MFA reviews</span>
+          <span class="kpi-chip review">STEP-UP</span>
+        </div>
+        <div class="kpi-value-row">
+          <span id="kpiReviewCount" class="kpi-number">12</span>
+          <span class="kpi-unit">TXS</span>
+        </div>
+        <span class="kpi-meta text-amber">Low-friction biometric / OTP challenge</span>
+      </div>
+
+      <div class="kpi-card" id="cardHalted">
+        <div class="kpi-header">
+          <span class="kpi-label">Attacks blocked</span>
+          <span class="kpi-chip halt">HALT</span>
+        </div>
+        <div class="kpi-value-row">
+          <span id="kpiHaltedCount" class="kpi-number">38</span>
+          <span class="kpi-unit">DRAINS BLOCKED</span>
+        </div>
+        <span class="kpi-meta text-rose" id="kpiProtectedAmount">$42,910 saved in fund drainage</span>
+      </div>
+    </div>
+
+    <!-- Row 2: Live Visualization & Tri-Signal Breakdown -->
+    <div class="viz-row">
+      <!-- Live Velocity & Surge Stream Chart -->
+      <div class="glass-panel stream-chart-panel">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title">Transaction Rate vs. Risk Score</h3>
+            <p class="panel-subtitle">Rolling 60-second window</p>
+          </div>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-dot dot-velocity"></span> Transaction Rate</span>
+            <span class="legend-item"><span class="legend-dot dot-risk"></span> Risk Score</span>
+          </div>
+        </div>
+        <div class="canvas-container">
+          <canvas id="velocityCanvas" width="700" height="200"></canvas>
+        </div>
+      </div>
+
+      <!-- Tri-Signal Adaptive Risk Decomposition -->
+      <div class="glass-panel risk-engine-panel">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title">Risk Signal Breakdown</h3>
+            <p class="panel-subtitle">Composite decision formula</p>
+          </div>
+          <div class="badge-tag">INFERENCE: 0.94ms</div>
+        </div>
+
+        <div class="signal-breakdown">
+          <div class="signal-item">
+            <div class="signal-label-row">
+              <span class="signal-name">Supervised (LightGBM)</span>
+              <span id="sigMlValue" class="signal-val">0.032</span>
+            </div>
+            <div class="signal-bar">
+              <div id="sigMlBar" class="signal-bar-fill bar-cyan" style="width: 3.2%"></div>
+            </div>
+            <span class="signal-subtext">Weights V14, V4, V12, V10 & time-derived ratios</span>
+          </div>
+
+          <div class="signal-item">
+            <div class="signal-label-row">
+              <span class="signal-name">Isolation Forest anomaly</span>
+              <span id="sigIsoValue" class="signal-val">0.081</span>
+            </div>
+            <div class="signal-bar">
+              <div id="sigIsoBar" class="signal-bar-fill bar-purple" style="width: 8.1%"></div>
+            </div>
+            <span class="signal-subtext">Isolates high-dimensional drift & zero-day attacks</span>
+          </div>
+
+          <div class="signal-item">
+            <div class="signal-label-row">
+              <span class="signal-name">Velocity burst index</span>
+              <span id="sigBurstValue" class="signal-val">0.120</span>
+            </div>
+            <div class="signal-bar">
+              <div id="sigBurstBar" class="signal-bar-fill bar-gold" style="width: 12%"></div>
+            </div>
+            <span class="signal-subtext">High surge without anomaly = Approved (Flash Sale)</span>
+          </div>
+        </div>
+
+        <!-- Composite Score Gauge -->
+        <div class="composite-score-box">
+          <div class="gauge-info">
+            <span class="gauge-title">COMPOSITE RISK SCORE</span>
+            <span id="gaugeDecisionBadge" class="decision-badge approve">APPROVE</span>
+          </div>
+          <div class="gauge-big-num">
+            <span id="gaugeNumber">0.048</span>
+            <span class="gauge-max">/ 1.000</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 3: Live Transaction Inspection Stream & Context Adapters -->
+    <div class="stream-row">
+      <!-- Live Ledger -->
+      <div class="glass-panel ledger-panel">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title">Authorization Feed</h3>
+            <p class="panel-subtitle">Live incoming transactions</p>
+          </div>
+          <div class="feed-controls">
+            <button id="btnPauseStream" class="btn-action">Pause Feed</button>
+            <button id="btnClearLedger" class="btn-action">Clear</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="ledger-table" id="transactionTable">
+            <thead>
+              <tr>
+                <th>TRANSACTION ID</th>
+                <th>TIME</th>
+                <th>AMOUNT</th>
+                <th>ML PROB</th>
+                <th>ANOMALY</th>
+                <th>VELOCITY</th>
+                <th>RISK SCORE</th>
+                <th>DECISION</th>
+                <th>DECISION RATIONALE</th>
+              </tr>
+            </thead>
+            <tbody id="transactionTableBody">
+              <!-- Dynamically populated by app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Context Adapters Architecture Card -->
+      <div class="glass-panel context-adapters-panel">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title">Context Adapters</h3>
+            <p class="panel-subtitle">Pluggable enrichment modules</p>
+          </div>
+        </div>
+        <div class="adapter-list">
+          <div class="adapter-card active">
+            <div class="adapter-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="adapter-info">
+              <div class="adapter-title-row">
+                <span class="adapter-name">Account History</span>
+                <span class="adapter-status">READY</span>
+              </div>
+              <p class="adapter-desc">Maintains user spending baselines and historical device pairings.</p>
+            </div>
+          </div>
+
+          <div class="adapter-card active">
+            <div class="adapter-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="adapter-info">
+              <div class="adapter-title-row">
+                <span class="adapter-name">Merchant / Flash Sale</span>
+                <span class="adapter-status status-active">ACTIVE</span>
+              </div>
+              <p class="adapter-desc">Whitelists registered promotional campaigns and surge windows.</p>
+            </div>
+          </div>
+
+          <div class="adapter-card active">
+            <div class="adapter-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="adapter-info">
+              <div class="adapter-title-row">
+                <span class="adapter-name">Geo &amp; Telemetry</span>
+                <span class="adapter-status">READY</span>
+              </div>
+              <p class="adapter-desc">Monitors ASN impossible-speed jumps and proxy clustering.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="architecture-note">
+          <strong>Key Architectural Principle:</strong> Missing demographic or relational fields are architectural limitations, never penalized as false fraud signals.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
