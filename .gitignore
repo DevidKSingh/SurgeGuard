@@ -25,6 +25,8 @@ pip-log.txt
 
 # --- ML Artifacts & Large Data ---
 *.pkl
+models/*.pkl
+feedback.db
 *.joblib
 *.h5
 *.pt

@@ -73,9 +73,9 @@ function drawLiveChart() {
   ctx.clearRect(0, 0, w, h);
 
   // Subtle grid lines
-  ctx.strokeStyle = '#1e293b';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
   ctx.lineWidth = 1;
-  for (let y = 30; y < h; y += 40) {
+  for (let y = 30; y < h; y += 38) {
     ctx.beginPath();
     ctx.moveTo(0, y);
     ctx.lineTo(w, y);
@@ -217,7 +217,9 @@ function saveFlaggedTransaction(tx) {
       reasons:             [tx.rationale],
       flagged_at:          new Date().toISOString(),
       approved_by_admin:   false,
-      approved_at:         null
+      approved_at:         null,
+      verified_label:      null,
+      admin_note:          null
     });
     if (store.length > 500) store.splice(500); // cap size
     saveLocalFlaggedStore(store);
@@ -294,6 +296,11 @@ function processNextTransaction() {
 
   // Append row to ledger table
   const rationaleColorClass = tx.decision === 'HALT' ? 'text-rose' : (tx.decision === 'REVIEW' ? 'text-amber' : '');
+  const rScore = parseFloat(tx.risk);
+  let riskColorClass = 'text-emerald';
+  if (rScore >= 0.70) riskColorClass = 'text-rose';
+  else if (rScore >= 0.35) riskColorClass = 'text-amber';
+
   const row = document.createElement('tr');
   row.innerHTML = `
     <td>${tx.id}</td>
@@ -302,7 +309,7 @@ function processNextTransaction() {
     <td>${tx.mlProb}</td>
     <td>${tx.anomaly}</td>
     <td>${tx.velocity}</td>
-    <td style="font-weight:600; color:var(--text-primary);">${tx.risk}</td>
+    <td style="font-weight:600;" class="${riskColorClass}">${tx.risk}</td>
     <td><span class="ledger-badge ${tx.decision.toLowerCase()}">${tx.decision}</span></td>
     <td class="${rationaleColorClass}">${tx.rationale}</td>
   `;

@@ -1,4 +1,4 @@
-﻿# 🛡️ SurgeGuard — Securing the Surge
+# 🛡️ SurgeGuard — Securing the Surge
 
 > **Protecting Digital Transactions During Peak E-Commerce Events**
 
@@ -92,10 +92,18 @@ Transaction Stream
 ```
 SurgeGuard/
 ├── ml_pipeline.py              # Feature engineering + model training (run this first)
-├── api.py                      # FastAPI real-time scoring engine
+├── retrain_engine.py           # Adaptive retraining, validation & champion/challenger promotion
+├── feedback_store.py           # Persistent SQLite storage for Human-in-the-Loop verified labels
+├── api.py                      # FastAPI real-time scoring engine + adaptive ML endpoints
 ├── run_server.py               # Server entry point (uvicorn launcher)
+├── test_adaptive_loop.py       # E2E test suite for feedback, retraining, and promotion
 ├── evaluate_test.py            # Out-of-sample evaluation → test_predictions.csv
 ├── benchmark_latency.py        # Latency stress profiler
+├── models/                     # Versioned LightGBM artifacts & active model metadata
+│   ├── model_v1.pkl            # Base champion model artifact
+│   ├── model_v2.pkl            # Retrained challenger artifact
+│   └── active_model.json       # Active champion pointer, metrics & audit history
+├── feedback.db                 # Persistent SQLite database for human-verified feedback
 ├── risk_engine_artifacts.pkl   # Serialized model weights + calibrated tiers (auto-generated)
 ├── test_predictions.csv        # 42,720-row scored prediction output (auto-generated)
 ├── .env.example                # Environment variable template
@@ -103,14 +111,12 @@ SurgeGuard/
 ├── dashboard/
 │   ├── index.html              # Live transaction dashboard UI
 │   ├── style.css               # Dashboard styles (glassmorphism dark theme)
-│   ├── app.js                  # Dashboard simulation + admin override controller
-│   ├── admin.html              # Admin Override Console
-│   ├── admin.js                # Admin panel logic
-│   └── admin-style.css         # Admin panel styles
-├── train.csv                   # Raw training data (gitignored — large file)
-├── train_cleaned.csv           # Cleaned training data (gitignored — large file)
-├── test.csv                    # Raw test data (gitignored — large file)
-└── test_cleaned.csv            # Cleaned test data (gitignored — large file)
+│   ├── app.js                  # Dashboard simulation + live metrics controller
+│   ├── admin.html              # Admin Override & Adaptive Learning Console
+│   ├── admin.js                # Human feedback, model status & retraining controller
+│   └── admin-style.css         # Admin panel & adaptive learning styles
+├── train_cleaned.csv           # Cleaned training data (198,773 rows)
+└── test_cleaned.csv            # Cleaned test data (42,691 rows)
 ```
 
 ---
@@ -234,10 +240,80 @@ High velocity *combined* with anomalous feature vectors (V14, V4, V12 deviations
 
 ---
 
+## 🔄 Human-in-the-Loop Adaptive Fraud Learning
+
+SurgeGuard features a production-grade **Human-in-the-Loop (HITL) Adaptive Supervised Learning System**. Rather than treating machine learning decisions as immutable or blindly retraining on noisy operational overrides, SurgeGuard implements explicit human feedback capture, zero-leakage causal feature preservation, and a **Champion vs Challenger** promotion protocol.
+
+```
+Suspicious Transaction (HALT / REVIEW)
+            │
+            ▼
+    Admin Investigation
+            │
+            ▼
+   Explicit Ground Truth:
+  [ LEGITIMATE (0) ]  [ FRAUD (1) ]
+            │
+            ▼
+Persistent SQLite Feedback Database (`feedback.db`)
+(Stores exact 53-dimension feature vector from inference time)
+            │
+            ▼
+Accumulated Feedback ≥ Threshold (or manual trigger)
+            │
+            ▼
+Retraining Engine (`retrain_engine.py`)
+Combined Training Data = Base Historical Training Data + Human Verified Feedback
+            │
+            ▼
+Train Challenger LightGBM Classifier
+            │
+            ▼
+Evaluate Challenger vs Champion on Pristine Validation Benchmark
+            │
+      ┌─────┴────────────────┐
+      ▼                      ▼
+Validation Passed?      Validation Failed?
+      │                      │
+   [ YES ]                [ NO ]
+      │                      │
+Promote Challenger      Reject Challenger
+(model_v1 → model_v2)  (model_v1 remains active)
+Update active_model.json Preserve audit history
+Hot-reload in API
+```
+
+### Core Architectural Principles
+
+1. **Separation of Operational Overrides vs ML Ground Truth**:
+   - An operational override (`current_decision = "APPROVE"`) unblocks a customer transaction for business continuity.
+   - Machine learning ground truth (`verified_label`: `0` for LEGITIMATE, `1` for FRAUD) is explicitly confirmed by an analyst with optional investigation notes. Operational overrides never pollute training data as false positives.
+
+2. **Zero-Leakage Feature Preservation**:
+   - When a transaction is scored by `/api/v1/evaluate`, its **complete 53-dimension causal feature vector** (including time-since-previous and causal rolling velocity over 10s, 60s, 300s, 900s) is captured at inference time and stored alongside the feedback record.
+   - Retraining uses these preserved features directly, avoiding any recomputation with future data or lookahead leakage.
+
+3. **Catastrophic Drift Protection**:
+   - Retraining uses `Base Historical Training Data + Human Verified Feedback`. The model is **never** trained on recent feedback alone, preventing catastrophic forgetting or overfitting on small sample sizes.
+
+4. **Champion vs Challenger Validation Guardrails**:
+   - The active production model is the **Champion**.
+   - The retrained model is the **Challenger**.
+   - Both models are evaluated on the exact same chronological validation split using pure-NumPy ROC-AUC and PR-AUC.
+   - If Challenger PR-AUC or ROC-AUC fails validation criteria (e.g. noisy feedback or performance degradation), the Challenger is **rejected** and the Champion remains active in production.
+   - Only when Challenger passes validation is it promoted to Active Champion.
+
+5. **Model Versioning & Audit Trail**:
+   - Model artifacts are versioned (`models/model_v1.pkl`, `models/model_v2.pkl`).
+   - `models/active_model.json` tracks active version, activation timestamp, champion metrics, and full promotion history.
+   - The running FastAPI engine hot-reloads the newly promoted model in memory without server restarts.
+
+---
+
 ## 🔌 API Reference
 
 ### `POST /api/v1/evaluate`
-Real-time transaction risk scoring.
+Real-time transaction risk scoring with 53 causal features.
 
 **Request body:**
 ```json
@@ -266,11 +342,69 @@ Real-time transaction risk scoring.
 }
 ```
 
+### `POST /api/v1/admin/feedback/{tx_id}`
+Submit human-in-the-loop verified ground truth label for a flagged transaction.
+
+**Request body:**
+```json
+{
+  "verified_label": 1,
+  "admin_note": "Confirmed coordinated bot account draining",
+  "reviewer_id": "senior_analyst_01",
+  "allow_override": true
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Transaction TX-2010-8008 verified as FRAUD.",
+  "transaction_id": "TX-2010-8008",
+  "verified_label": 1,
+  "label_name": "FRAUD",
+  "total_feedback_count": 12,
+  "retrain_threshold": 10,
+  "ready_for_retraining": true,
+  "feedback_timestamp": "2026-09-30T00:35:00Z",
+  "model_version": "model_v1"
+}
+```
+
+### `GET /api/v1/admin/feedback`
+Returns verified feedback records and summary statistics.
+
+### `POST /api/v1/admin/retrain`
+Triggers the adaptive retraining cycle, training a Challenger LightGBM model, evaluating against Champion on the validation benchmark, and promoting if criteria pass.
+
+**Query parameters:**
+- `force_promote` (bool, optional, default: `false`): Force promotion if override requested.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "candidate_model": "model_v2",
+  "promoted": true,
+  "previous_model": "model_v1",
+  "champion_metrics": { "roc_auc": 0.7801, "pr_auc": 0.6216 },
+  "challenger_metrics": { "roc_auc": 0.7937, "pr_auc": 0.6345 },
+  "feedback_samples": 12,
+  "duration_seconds": 3.59
+}
+```
+
+### `GET /api/v1/admin/model-status`
+Returns active model version, champion metrics, feedback pool size, and promotion audit trail.
+
+### `POST /api/v1/admin/reload-model`
+Safely reloads the active model artifact into the live server in memory without downtime.
+
 ### `GET /api/v1/admin/flagged`
 Returns the most recent HALT/REVIEW transactions (newest first, up to 200).
 
 ### `POST /api/v1/admin/approve/{tx_id}`
-Admin override: approve a previously HALT-ed or REVIEW-ed transaction.
+Admin operational override: approve a previously HALT-ed or REVIEW-ed transaction.
 
 ### `GET /api/v1/health`
 ```json

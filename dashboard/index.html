@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Securing the Surge — Real-Time Transaction Intelligence</title>
+  <title>SurgeGuard — Real-Time Transaction Security &amp; Fraud Intelligence</title>
+  <meta name="description" content="Production fraud intelligence engine protecting digital transactions during peak e-commerce surge events." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body class="dark-theme">
+
   <!-- Top Navigation Bar -->
   <header class="navbar">
     <div class="nav-brand">
@@ -22,19 +24,19 @@
       <div class="brand-text">
         <div class="brand-title-row">
           <h1 class="brand-title">SurgeGuard</h1>
-          <span class="brand-env-tag">PRODUCTION</span>
+          <span class="brand-env-tag">PRODUCTION SOC</span>
         </div>
-        <p class="brand-subtitle">Real-Time Transaction Risk Engine & Adaptive Bot Defense</p>
+        <p class="brand-subtitle">TRANSACTION SECURITY &amp; ADAPTIVE FRAUD INTELLIGENCE</p>
       </div>
     </div>
 
-    <!-- System Status Bar -->
+    <!-- Live Telemetry Status Bar -->
     <div class="system-status">
-      <a id="adminConsoleLink" href="/admin" class="admin-console-link" title="Open Admin Override Console">
+      <a id="adminConsoleLink" href="/admin" class="admin-console-link" title="Open Fraud Operations &amp; Admin Override Console">
         <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13" aria-hidden="true">
           <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
         </svg>
-        Admin Console
+        Admin Console &#8594;
       </a>
       <span class="status-indicator-dot"></span>
       <span class="status-label">ENGINE:</span>
@@ -46,21 +48,21 @@
   <section class="scenario-panel">
     <div class="scenario-header">
       <div class="scenario-intro">
-        <div class="scenario-tag">Scenario</div>
+        <span class="scenario-tag">Traffic Profile</span>
       </div>
       <div class="scenario-buttons" role="tablist">
         <button id="btnScenarioNormal" class="btn-scenario active" data-scenario="normal" role="tab" aria-selected="true">
           <div class="btn-scenario-indicator"></div>
           <div class="btn-content">
             <span class="scenario-btn-name">Baseline Flow</span>
-            <span class="scenario-btn-desc">15 TPS • Nominal Shopping</span>
+            <span class="scenario-btn-desc">15 TPS • Nominal Traffic Envelope</span>
           </div>
         </button>
         <button id="btnScenarioFlashSale" class="btn-scenario" data-scenario="flash_sale" role="tab" aria-selected="false">
           <div class="btn-scenario-indicator indicator-surge"></div>
           <div class="btn-content">
             <span class="scenario-btn-name">Flash Sale Surge</span>
-            <span class="scenario-btn-desc">120+ TPS • 0 False Declines</span>
+            <span class="scenario-btn-desc">130+ TPS • 0 False Declines</span>
           </div>
         </button>
         <button id="btnScenarioBotAttack" class="btn-scenario" data-scenario="bot_attack" role="tab" aria-selected="false">
@@ -80,7 +82,7 @@
     <div class="kpi-row">
       <div class="kpi-card" id="cardTps">
         <div class="kpi-header">
-          <span class="kpi-label">Tx velocity</span>
+          <span class="kpi-label">Tx Velocity</span>
           <span class="kpi-chip speed">LIVE</span>
         </div>
         <div class="kpi-value-row">
@@ -90,7 +92,7 @@
         <div class="progress-bar-container">
           <div id="kpiTpsBar" class="progress-bar-fill" style="width: 15%"></div>
         </div>
-        <span class="kpi-meta" id="kpiTpsMeta">Within normal nominal envelope</span>
+        <span class="kpi-meta" id="kpiTpsMeta">Within nominal nominal envelope</span>
       </div>
 
       <div class="kpi-card" id="cardApprovals">
@@ -107,7 +109,7 @@
 
       <div class="kpi-card" id="cardReviews">
         <div class="kpi-header">
-          <span class="kpi-label">MFA reviews</span>
+          <span class="kpi-label">Step-Up MFA Reviews</span>
           <span class="kpi-chip review">STEP-UP</span>
         </div>
         <div class="kpi-value-row">
@@ -119,7 +121,7 @@
 
       <div class="kpi-card" id="cardHalted">
         <div class="kpi-header">
-          <span class="kpi-label">Attacks blocked</span>
+          <span class="kpi-label">Attacks Blocked</span>
           <span class="kpi-chip halt">HALT</span>
         </div>
         <div class="kpi-value-row">
@@ -136,16 +138,16 @@
       <div class="glass-panel stream-chart-panel">
         <div class="panel-header">
           <div>
-            <h3 class="panel-title">Transaction Rate vs. Risk Score</h3>
-            <p class="panel-subtitle">Rolling 60-second window</p>
+            <h3 class="panel-title">Transaction Rate vs. Composite Risk Score</h3>
+            <p class="panel-subtitle">Rolling 60-second real-time window</p>
           </div>
           <div class="chart-legend">
-            <span class="legend-item"><span class="legend-dot dot-velocity"></span> Transaction Rate</span>
-            <span class="legend-item"><span class="legend-dot dot-risk"></span> Risk Score</span>
+            <span class="legend-item"><span class="legend-dot dot-velocity"></span> Transaction Rate (TPS)</span>
+            <span class="legend-item"><span class="legend-dot dot-risk"></span> Risk Score (0-1)</span>
           </div>
         </div>
         <div class="canvas-container">
-          <canvas id="velocityCanvas" width="700" height="200"></canvas>
+          <canvas id="velocityCanvas" width="700" height="180"></canvas>
         </div>
       </div>
 
@@ -153,8 +155,8 @@
       <div class="glass-panel risk-engine-panel">
         <div class="panel-header">
           <div>
-            <h3 class="panel-title">Risk Signal Breakdown</h3>
-            <p class="panel-subtitle">Composite decision formula</p>
+            <h3 class="panel-title">Risk Signal Decomposition</h3>
+            <p class="panel-subtitle">Tri-signal composite decision formula</p>
           </div>
           <div class="badge-tag">INFERENCE: 0.94ms</div>
         </div>
@@ -162,29 +164,29 @@
         <div class="signal-breakdown">
           <div class="signal-item">
             <div class="signal-label-row">
-              <span class="signal-name">Supervised (LightGBM)</span>
+              <span class="signal-name">Supervised Probability (LightGBM)</span>
               <span id="sigMlValue" class="signal-val">0.032</span>
             </div>
             <div class="signal-bar">
               <div id="sigMlBar" class="signal-bar-fill bar-cyan" style="width: 3.2%"></div>
             </div>
-            <span class="signal-subtext">Weights V14, V4, V12, V10 & time-derived ratios</span>
+            <span class="signal-subtext">Weights V14, V4, V12, V10 &amp; causal rolling ratios</span>
           </div>
 
           <div class="signal-item">
             <div class="signal-label-row">
-              <span class="signal-name">Isolation Forest anomaly</span>
+              <span class="signal-name">Anomaly Score (Isolation Forest)</span>
               <span id="sigIsoValue" class="signal-val">0.081</span>
             </div>
             <div class="signal-bar">
               <div id="sigIsoBar" class="signal-bar-fill bar-purple" style="width: 8.1%"></div>
             </div>
-            <span class="signal-subtext">Isolates high-dimensional drift & zero-day attacks</span>
+            <span class="signal-subtext">Isolates high-dimensional drift &amp; novel zero-day attacks</span>
           </div>
 
           <div class="signal-item">
             <div class="signal-label-row">
-              <span class="signal-name">Velocity burst index</span>
+              <span class="signal-name">Velocity Burst Index</span>
               <span id="sigBurstValue" class="signal-val">0.120</span>
             </div>
             <div class="signal-bar">
@@ -197,7 +199,7 @@
         <!-- Composite Score Gauge -->
         <div class="composite-score-box">
           <div class="gauge-info">
-            <span class="gauge-title">COMPOSITE RISK SCORE</span>
+            <span class="gauge-title">Composite Risk Score</span>
             <span id="gaugeDecisionBadge" class="decision-badge approve">APPROVE</span>
           </div>
           <div class="gauge-big-num">
@@ -214,8 +216,8 @@
       <div class="glass-panel ledger-panel">
         <div class="panel-header">
           <div>
-            <h3 class="panel-title">Authorization Feed</h3>
-            <p class="panel-subtitle">Live incoming transactions</p>
+            <h3 class="panel-title">Real-Time Authorization Feed</h3>
+            <p class="panel-subtitle">Streaming incoming transactions</p>
           </div>
           <div class="feed-controls">
             <button id="btnPauseStream" class="btn-action">Pause Feed</button>
@@ -250,13 +252,13 @@
         <div class="panel-header">
           <div>
             <h3 class="panel-title">Context Adapters</h3>
-            <p class="panel-subtitle">Pluggable enrichment modules</p>
+            <p class="panel-subtitle">Pluggable enrichment pipeline</p>
           </div>
         </div>
         <div class="adapter-list">
           <div class="adapter-card active">
             <div class="adapter-icon" aria-hidden="true">
-              <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
                 <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
               </svg>
             </div>
@@ -271,7 +273,7 @@
 
           <div class="adapter-card active">
             <div class="adapter-icon" aria-hidden="true">
-              <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
                 <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
               </svg>
             </div>
@@ -286,7 +288,7 @@
 
           <div class="adapter-card active">
             <div class="adapter-icon" aria-hidden="true">
-              <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
                 <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
               </svg>
             </div>
@@ -306,7 +308,7 @@
       </div>
     </div>
 
-    <!-- Row 4: Admin Override Panel -->
+    <!-- Row 4: Admin Quick Lookup Panel -->
     <div class="admin-override-section">
       <div class="glass-panel admin-panel">
         <div class="panel-header">
@@ -315,9 +317,9 @@
               <svg class="admin-panel-icon" viewBox="0 0 20 20" fill="currentColor" width="15" height="15" aria-hidden="true">
                 <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
               </svg>
-              Admin Transaction Override
+              Transaction Override Lookup
             </h3>
-            <p class="panel-subtitle">Search a HALT or REVIEW transaction by ID and approve if ML decision is incorrect</p>
+            <p class="panel-subtitle">Search a HALT or REVIEW transaction by ID and inspect ML decision details</p>
           </div>
           <div class="badge-tag" id="adminOverrideCount">0 overrides issued</div>
         </div>
@@ -332,7 +334,7 @@
               id="adminTxIdInput"
               class="admin-search-input"
               type="text"
-              placeholder="Enter Transaction ID  (e.g. TX-172800-4291)"
+              placeholder="Enter Transaction ID  (e.g. TX-2060-3010)"
               autocomplete="off"
               spellcheck="false"
             />

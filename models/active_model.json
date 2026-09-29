@@ -1,0 +1,163 @@
+{
+  "active_model_version": "model_v3",
+  "artifact_path": "models\\model_v3.pkl",
+  "activated_at": "2026-09-29T20:30:48.217113+00:00",
+  "metrics": {
+    "roc_auc": 0.8569,
+    "pr_auc": 0.3041
+  },
+  "previous_model": "model_v2",
+  "feedback_samples_used": 13,
+  "history": [
+    {
+      "model_version": "model_v1",
+      "promoted_at": "2026-09-30T00:00:00Z",
+      "promoted": true,
+      "reason": "Initial baseline model"
+    },
+    {
+      "challenger_version": "model_v2",
+      "champion_version": "model_v1",
+      "evaluated_at": "2026-09-29T19:12:30.998611+00:00",
+      "champion_metrics": {
+        "roc_auc": 0.7801,
+        "pr_auc": 0.6216
+      },
+      "challenger_metrics": {
+        "roc_auc": 0.7937,
+        "pr_auc": 0.4804
+      },
+      "feedback_samples": 12,
+      "promoted": false,
+      "reason": "Failed criteria (Challenger PR-AUC: 0.4804, Min: 0.4)"
+    },
+    {
+      "challenger_version": "model_v2",
+      "champion_version": "model_v1",
+      "evaluated_at": "2026-09-29T19:14:14.164473+00:00",
+      "champion_metrics": {
+        "roc_auc": 0.7801,
+        "pr_auc": 0.6216
+      },
+      "challenger_metrics": {
+        "roc_auc": 0.7937,
+        "pr_auc": 0.4804
+      },
+      "feedback_samples": 12,
+      "promoted": false,
+      "reason": "Failed criteria (Challenger PR-AUC: 0.4804, Min: 0.4)"
+    },
+    {
+      "challenger_version": "model_v2",
+      "champion_version": "model_v1",
+      "evaluated_at": "2026-09-29T19:14:17.694166+00:00",
+      "champion_metrics": {
+        "roc_auc": 0.7801,
+        "pr_auc": 0.6216
+      },
+      "challenger_metrics": {
+        "roc_auc": 0.7937,
+        "pr_auc": 0.4804
+      },
+      "feedback_samples": 12,
+      "promoted": true,
+      "reason": "Failed criteria (Challenger PR-AUC: 0.4804, Min: 0.4)"
+    },
+    {
+      "challenger_version": "model_v3",
+      "champion_version": "model_v2",
+      "evaluated_at": "2026-09-29T19:19:28.018207+00:00",
+      "champion_metrics": {
+        "roc_auc": 0.7937,
+        "pr_auc": 0.4804
+      },
+      "challenger_metrics": {
+        "roc_auc": 0.7823,
+        "pr_auc": 0.5938
+      },
+      "feedback_samples": 12,
+      "promoted": false,
+      "reason": "Failed criteria (Challenger PR-AUC: 0.5938, Min: 0.4)"
+    },
+    {
+      "challenger_version": "model_v3",
+      "champion_version": "model_v2",
+      "evaluated_at": "2026-09-29T19:22:42.858440+00:00",
+      "champion_metrics": {
+        "roc_auc": 0.7937,
+        "pr_auc": 0.4804
+      },
+      "challenger_metrics": {
+        "roc_auc": 0.8197,
+        "pr_auc": 0.5777
+      },
+      "feedback_samples": 12,
+      "promoted": false,
+      "reason": "Failed criteria (Challenger PR-AUC: 0.5777, Min: 0.4)"
+    },
+    {
+      "challenger_version": "model_v3",
+      "champion_version": "model_v2",
+      "evaluated_at": "2026-09-29T19:56:36.291812+00:00",
+      "champion_metrics": {
+        "roc_auc": 0.7937,
+        "pr_auc": 0.4804
+      },
+      "challenger_metrics": {
+        "roc_auc": 0.7823,
+        "pr_auc": 0.5938
+      },
+      "feedback_samples": 12,
+      "promoted": false,
+      "reason": "Failed criteria (Challenger PR-AUC: 0.5938, Min: 0.4)"
+    },
+    {
+      "challenger_version": "model_v3",
+      "champion_version": "model_v2",
+      "evaluated_at": "2026-09-29T20:30:44.621958+00:00",
+      "champion_metrics": {
+        "roc_auc": 0.7937,
+        "pr_auc": 0.4804
+      },
+      "challenger_metrics": {
+        "roc_auc": 0.8569,
+        "pr_auc": 0.3041
+      },
+      "feedback_samples": 13,
+      "promoted": false,
+      "reason": "Failed criteria (Challenger PR-AUC: 0.3041, Min: 0.4)"
+    },
+    {
+      "challenger_version": "model_v3",
+      "champion_version": "model_v2",
+      "evaluated_at": "2026-09-29T20:30:48.217113+00:00",
+      "champion_metrics": {
+        "roc_auc": 0.7937,
+        "pr_auc": 0.4804
+      },
+      "challenger_metrics": {
+        "roc_auc": 0.8569,
+        "pr_auc": 0.3041
+      },
+      "feedback_samples": 13,
+      "promoted": true,
+      "reason": "Failed criteria (Challenger PR-AUC: 0.3041, Min: 0.4)"
+    },
+    {
+      "challenger_version": "model_v4",
+      "champion_version": "model_v3",
+      "evaluated_at": "2026-09-29T20:33:53.704526+00:00",
+      "champion_metrics": {
+        "roc_auc": 0.8569,
+        "pr_auc": 0.3041
+      },
+      "challenger_metrics": {
+        "roc_auc": 0.7823,
+        "pr_auc": 0.6208
+      },
+      "feedback_samples": 13,
+      "promoted": false,
+      "reason": "Failed criteria (Challenger PR-AUC: 0.6208, Min: 0.4)"
+    }
+  ]
+}
