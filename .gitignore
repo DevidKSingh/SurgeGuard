@@ -47,3 +47,16 @@ test_predictions.csv
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Datasets
+train.csv
+test.csv
+train_cleaned.csv
+test_cleaned.csv
+
+# Generated predictions
+test_predictions.csv
+
+# Python cache
+__pycache__/
+*.pyc

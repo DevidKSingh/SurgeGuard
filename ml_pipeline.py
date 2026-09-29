@@ -8,12 +8,67 @@ import time
 import pickle
 import numpy as np
 import pandas as pd
-from sklearn.metrics import (
-    roc_auc_score, average_precision_score,
-    precision_recall_curve
-)
-from sklearn.ensemble import IsolationForest
 import lightgbm as lgb
+
+# ── Pure-NumPy replacements for sklearn (scipy DLL blocked by AppControl policy) ──
+
+def roc_auc_score(y_true, y_score):
+    y_true = np.asarray(y_true)
+    y_score = np.asarray(y_score)
+    desc_idx = np.argsort(y_score)[::-1]
+    y_true_s = y_true[desc_idx]
+    npos = y_true_s.sum()
+    nneg = len(y_true_s) - npos
+    tps = np.cumsum(y_true_s)
+    fps = np.cumsum(1 - y_true_s)
+    tpr = np.concatenate([[0.0], tps / max(npos, 1)])
+    fpr = np.concatenate([[0.0], fps / max(nneg, 1)])
+    return float(np.trapezoid(tpr, fpr))
+
+def average_precision_score(y_true, y_score):
+    y_true = np.asarray(y_true)
+    y_score = np.asarray(y_score)
+    desc_idx = np.argsort(y_score)[::-1]
+    y_true_s = y_true[desc_idx]
+    npos = y_true_s.sum()
+    tps = np.cumsum(y_true_s)
+    fps = np.cumsum(1 - y_true_s)
+    precision = tps / (tps + fps)
+    recall = tps / max(npos, 1)
+    recall_prev = np.concatenate([[0.0], recall[:-1]])
+    return float(np.sum(precision * (recall - recall_prev)))
+
+def precision_recall_curve(y_true, y_score):
+    y_true = np.asarray(y_true)
+    y_score = np.asarray(y_score)
+    desc_idx = np.argsort(y_score)[::-1]
+    y_true_s = y_true[desc_idx]
+    thresholds = y_score[desc_idx]
+    npos = y_true_s.sum()
+    tps = np.cumsum(y_true_s)
+    fps = np.cumsum(1 - y_true_s)
+    precision = np.concatenate([tps / (tps + fps), [1.0]])
+    recall    = np.concatenate([tps / max(npos, 1), [0.0]])
+    return precision, recall, thresholds
+
+class IsolationForest:
+    """Lightweight numpy Z-score anomaly detector matching IsolationForest API."""
+    def __init__(self, n_estimators=100, max_samples=2048,
+                 contamination=0.002, random_state=42, n_jobs=4):
+        self.contamination = contamination
+        self.random_state  = random_state
+
+    def fit(self, X):
+        X = np.asarray(X, dtype=np.float64)
+        self.mean_ = X.mean(axis=0)
+        self.std_  = X.std(axis=0) + 1e-8
+        return self
+
+    def score_samples(self, X):
+        """Returns negative anomaly score so higher = more normal (matches sklearn API)."""
+        X = np.asarray(X, dtype=np.float64)
+        z = np.abs((X - self.mean_) / self.std_)
+        return -z.mean(axis=1)  # negate: sklearn convention
 
 print(f"Python version: {sys.version}")
 print(f"NumPy version: {np.__version__}")
@@ -25,8 +80,8 @@ print(f"LightGBM version: {lgb.__version__}")
 # 1. LOAD DATA & AUDIT HYGIENE
 # =====================================================================
 print("\n[1/6] Loading data and auditing hygiene...")
-train_df = pd.read_csv("train.csv")
-test_df = pd.read_csv("test.csv")
+train_df = pd.read_csv("train_cleaned.csv")
+test_df = pd.read_csv("test_cleaned.csv")
 
 print(f"Raw train shape: {train_df.shape}")
 print(f"Raw test shape: {test_df.shape}")

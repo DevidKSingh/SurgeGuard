@@ -1,0 +1,13 @@
+{
+  "original_train_rows": 199364,
+  "cleaned_train_rows": 198773,
+  "duplicate_train_rows_removed": 591,
+  "original_test_rows": 42720,
+  "cleaned_test_rows": 42691,
+  "duplicate_test_rows_removed": 29,
+  "missing_values_after_cleaning": 0,
+  "infinite_values_after_cleaning": 0,
+  "negative_amount_rows_removed": 0,
+  "outliers_removed": 0,
+  "note": "Exact duplicate rows were removed. Outliers and zero-amount transactions were retained because they can contain legitimate fraud-detection signals."
+}
