@@ -1,0 +1,14 @@
+# ==============================================================================
+# SurgeGuard — Software Dependencies & Exact Environment Specification
+# ==============================================================================
+
+# Core Machine Learning & Data Processing
+numpy==2.5.3
+pandas==3.0.6
+lightgbm==4.7.0
+
+# Real-Time Inference API & Server Runtime
+fastapi==0.141.1
+uvicorn==0.54.0
+pydantic==2.13.5
+python-dotenv==1.2.3

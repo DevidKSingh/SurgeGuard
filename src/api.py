@@ -5,6 +5,12 @@ Securing the Surge: Protecting Digital Transactions During Peak E-Commerce Event
 
 import os
 import sys
+
+# Ensure src directory is in sys.path
+_src_dir = os.path.dirname(os.path.abspath(__file__))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
 import time
 import types
 import pickle
@@ -51,7 +57,22 @@ class IsolationForest:
 load_dotenv()
 
 # --- Config from environment ---
-ARTIFACTS_PATH = os.getenv("ARTIFACTS_PATH", "risk_engine_artifacts.pkl")
+def resolve_artifacts_path():
+    env_p = os.getenv("ARTIFACTS_PATH")
+    if env_p and os.path.exists(env_p):
+        return env_p
+    candidates = [
+        "models/risk_engine_artifacts.pkl",
+        os.path.join(os.path.dirname(__file__), "..", "models", "risk_engine_artifacts.pkl"),
+        os.path.join(os.path.dirname(__file__), "models", "risk_engine_artifacts.pkl"),
+        "risk_engine_artifacts.pkl",
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return os.path.abspath(c)
+    return "models/risk_engine_artifacts.pkl"
+
+ARTIFACTS_PATH = resolve_artifacts_path()
 _raw_origins   = os.getenv("ALLOWED_ORIGINS", "*")
 ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",")]
 

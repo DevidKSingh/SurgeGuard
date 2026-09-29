@@ -3,6 +3,7 @@ ml_pipeline.py - Feature Engineering, Time-Aware Cross Validation, and Model Tra
 Securing the Surge: Protecting Digital Transactions During Peak E-Commerce Events
 """
 
+import os
 import sys
 import time
 import pickle
@@ -77,11 +78,19 @@ print(f"LightGBM version: {lgb.__version__}")
 
 
 # =====================================================================
-# 1. LOAD DATA & AUDIT HYGIENE
-# =====================================================================
-print("\n[1/6] Loading data and auditing hygiene...")
-train_df = pd.read_csv("train_cleaned.csv")
-test_df = pd.read_csv("test_cleaned.csv")
+def find_data_file(filename):
+    candidates = [
+        filename,
+        os.path.join(os.path.dirname(__file__), "..", filename),
+        os.path.join(os.path.dirname(__file__), filename),
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    return filename
+
+train_df = pd.read_csv(find_data_file("train_cleaned.csv"))
+test_df = pd.read_csv(find_data_file("test_cleaned.csv"))
 
 print(f"Raw train shape: {train_df.shape}")
 print(f"Raw test shape: {test_df.shape}")
@@ -315,7 +324,13 @@ print(f"\nInference Latency: P50={np.median(latencies):.3f}ms, Mean={np.mean(lat
 
 # Save artifacts
 print("\nSaving trained models & feature definitions...")
-with open("risk_engine_artifacts.pkl", "wb") as f:
+save_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models")
+if not os.path.exists(save_dir):
+    save_dir = "models"
+os.makedirs(save_dir, exist_ok=True)
+save_path = os.path.join(save_dir, "risk_engine_artifacts.pkl")
+
+with open(save_path, "wb") as f:
     pickle.dump({
         "lgb_model": model,
         "iso_forest": iso_forest,
@@ -325,4 +340,4 @@ with open("risk_engine_artifacts.pkl", "wb") as f:
         "tiers": {"approve_max": tau_review, "halt_min": tau_halt}
     }, f)
 
-print("Pipeline execution and artifact generation COMPLETE!")
+print(f"Pipeline execution and artifact generation COMPLETE! Saved to: {save_path}")

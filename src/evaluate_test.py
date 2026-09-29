@@ -17,9 +17,28 @@ print("=" * 70)
 print("OUT-OF-SAMPLE TEST EVALUATION: test.csv")
 print("=" * 70)
 
+import os
+import sys
+
+# Ensure IsolationForest shim
+class IsolationForest:
+    def __init__(self, **kwargs): pass
+sys.modules["__main__"].IsolationForest = IsolationForest
+
+def resolve_path(candidates):
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return candidates[0]
+
 # 1. Load Artifacts
 print("\n[1/5] Loading trained risk engine artifacts...")
-with open("risk_engine_artifacts.pkl", "rb") as f:
+art_path = resolve_path([
+    "models/risk_engine_artifacts.pkl",
+    os.path.join(os.path.dirname(__file__), "..", "models", "risk_engine_artifacts.pkl"),
+    "risk_engine_artifacts.pkl"
+])
+with open(art_path, "rb") as f:
     artifacts = pickle.load(f)
 
 lgb_model = artifacts["lgb_model"]
@@ -29,14 +48,20 @@ v_cols = artifacts["v_cols"]
 opt_threshold = artifacts["opt_threshold"]
 tiers = artifacts["tiers"]
 
-print(f"Loaded LightGBM model with {len(feature_cols)} features.")
+print(f"Loaded LightGBM model from {art_path} with {len(feature_cols)} features.")
 print(f"Calibrated Tiers: APPROVE < {tiers['approve_max']:.3f} | REVIEW [{tiers['approve_max']:.3f}, {tiers['halt_min']:.3f}) | HALT >= {tiers['halt_min']:.3f}")
 
 
-# 2. Load test.csv and Chronologically Sort
-print("\n[2/5] Loading and sorting test.csv...")
-test_raw = pd.read_csv("test.csv")
-print(f"test.csv shape: {test_raw.shape}")
+# 2. Load test CSV and Chronologically Sort
+print("\n[2/5] Loading and sorting test data...")
+test_path = resolve_path([
+    "test_cleaned.csv",
+    "test.csv",
+    os.path.join(os.path.dirname(__file__), "..", "test_cleaned.csv"),
+    os.path.join(os.path.dirname(__file__), "..", "test.csv"),
+])
+test_raw = pd.read_csv(test_path)
+print(f"{test_path} shape: {test_raw.shape}")
 
 # Preserve original order index to restore later
 test_raw["original_order"] = np.arange(len(test_raw))

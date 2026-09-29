@@ -12,8 +12,32 @@ print("=" * 70)
 print("LATENCY & HIGH-THROUGHPUT STRESS BENCHMARK")
 print("=" * 70)
 
+import os
+import sys
+
+# Ensure src dir is in sys.path
+_src_dir = os.path.dirname(os.path.abspath(__file__))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
+# Ensure IsolationForest shim
+class IsolationForest:
+    def __init__(self, **kwargs): pass
+sys.modules["__main__"].IsolationForest = IsolationForest
+
+def resolve_path(candidates):
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return candidates[0]
+
 # 1. Load Artifacts
-with open("risk_engine_artifacts.pkl", "rb") as f:
+art_path = resolve_path([
+    "models/risk_engine_artifacts.pkl",
+    os.path.join(os.path.dirname(__file__), "..", "models", "risk_engine_artifacts.pkl"),
+    "risk_engine_artifacts.pkl"
+])
+with open(art_path, "rb") as f:
     artifacts = pickle.load(f)
 
 lgb_model = artifacts["lgb_model"]
@@ -23,7 +47,13 @@ v_cols = artifacts["v_cols"]
 
 # 2. Extract features on test transactions
 from ml_pipeline import extract_features
-test_df = pd.read_csv("test.csv").sort_values("Time").reset_index(drop=True)
+test_path = resolve_path([
+    "test_cleaned.csv",
+    "test.csv",
+    os.path.join(os.path.dirname(__file__), "..", "test_cleaned.csv"),
+    os.path.join(os.path.dirname(__file__), "..", "test.csv"),
+])
+test_df = pd.read_csv(test_path).sort_values("Time").reset_index(drop=True)
 test_feats = extract_features(test_df)
 X_sample = test_feats[feature_cols].copy()
 v_sample = test_feats[v_cols].values
