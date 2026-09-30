@@ -1,5 +1,5 @@
 """
-evaluate_test.py - Generates Out-of-Sample Predictions and Evaluates Performance on test.csv
+evaluate_test.py - Generates Out-of-Sample Predictions and Evaluates Performance on test_cleaned.csv
 Securing the Surge: Protecting Digital Transactions During Peak E-Commerce Events
 
 Run from project root:  python src/evaluate_test.py
@@ -63,7 +63,7 @@ def average_precision_score(y_true, y_score):
     return float(np.sum(prec * (rec - rec_prev)))
 
 print("=" * 70)
-print("OUT-OF-SAMPLE TEST EVALUATION: test.csv")
+print("OUT-OF-SAMPLE TEST EVALUATION: test_cleaned.csv")
 print("=" * 70)
 
 import os
@@ -105,9 +105,7 @@ print(f"Calibrated Tiers: APPROVE < {tiers['approve_max']:.3f} | REVIEW [{tiers[
 print("\n[2/5] Loading and sorting test data...")
 test_path = resolve_path([
     "test_cleaned.csv",
-    "test.csv",
     os.path.join(os.path.dirname(__file__), "..", "test_cleaned.csv"),
-    os.path.join(os.path.dirname(__file__), "..", "test.csv"),
 ])
 test_raw = pd.read_csv(test_path)
 print(f"{test_path} shape: {test_raw.shape}")
@@ -118,7 +116,7 @@ test_sorted = test_raw.sort_values("Time").reset_index(drop=True)
 
 
 # 3. Vectorized Causal Feature Extraction
-print("\n[3/5] Extracting causal features on test.csv...")
+print("\n[3/5] Extracting causal features on test_cleaned.csv...")
 t0 = time.time()
 times = test_sorted["Time"].values.astype(np.float64)
 amounts = test_sorted["Amount"].values.astype(np.float64)
@@ -152,7 +150,7 @@ print(f"Features computed in {time.time() - t0:.2f}s.")
 
 
 # 4. Multi-Signal Inference & Risk Scoring
-print("\n[4/5] Executing inference on test.csv...")
+print("\n[4/5] Executing inference on test_cleaned.csv...")
 X_test = test_sorted[feature_cols]
 
 # 4.1 Supervised probability
@@ -190,7 +188,7 @@ print("\n[5/5] Performance metrics and exporting test_predictions.csv...")
 if "Class" in test_sorted.columns:
     y_true = test_sorted["Class"].values
     num_frauds = y_true.sum()
-    print(f"\nGround Truth Labels Available in test.csv: {num_frauds} frauds out of {len(test_sorted)} ({y_true.mean()*100:.3f}%)")
+    print(f"\nGround Truth Labels Available in test_cleaned.csv: {num_frauds} frauds out of {len(test_sorted)} ({y_true.mean()*100:.3f}%)")
     
     test_roc_auc = roc_auc_score(y_true, adaptive_risk)
     test_pr_auc = average_precision_score(y_true, adaptive_risk)
@@ -204,7 +202,7 @@ if "Class" in test_sorted.columns:
     review_mask = decisions == "REVIEW"
     halt_mask = decisions == "HALT"
     
-    print("\n--- Policy Performance on test.csv ---")
+    print("\n--- Policy Performance on test_cleaned.csv ---")
     print(f"APPROVE: {approve_mask.sum():,} txs ({approve_mask.mean()*100:.2f}%) | Fraud leak: {y_true[approve_mask].sum()} / {num_frauds}")
     print(f"REVIEW:  {review_mask.sum():,} txs ({review_mask.mean()*100:.2f}%)   | Intercepted for MFA: {y_true[review_mask].sum()} / {num_frauds}")
     print(f"HALT:    {halt_mask.sum():,} txs ({halt_mask.mean()*100:.2f}%)    | Blocked immediately: {y_true[halt_mask].sum()} / {num_frauds}")

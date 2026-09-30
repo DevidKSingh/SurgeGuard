@@ -71,13 +71,6 @@ class IsolationForest:
         z = np.abs((X - self.mean_) / self.std_)
         return -z.mean(axis=1)  # negate: sklearn convention
 
-print(f"Python version: {sys.version}")
-print(f"NumPy version: {np.__version__}")
-print(f"Pandas version: {pd.__version__}")
-print(f"LightGBM version: {lgb.__version__}")
-
-
-# =====================================================================
 def find_data_file(filename):
     candidates = [
         filename,
@@ -89,32 +82,10 @@ def find_data_file(filename):
             return p
     return filename
 
-train_df = pd.read_csv(find_data_file("train_cleaned.csv"))
-test_df = pd.read_csv(find_data_file("test_cleaned.csv"))
-
-print(f"Raw train shape: {train_df.shape}")
-print(f"Raw test shape: {test_df.shape}")
-
-# Check exact duplicates
-train_dups = train_df.duplicated().sum()
-test_dups = test_df.duplicated().sum()
-print(f"Exact duplicates in train: {train_dups}")
-print(f"Exact duplicates in test: {test_dups}")
-
-# Sort strictly by Time chronologically (essential for zero leakage)
-train_df = train_df.sort_values("Time").reset_index(drop=True)
-test_df = test_df.sort_values("Time").reset_index(drop=True)
-
-print(f"Train time range: {train_df['Time'].min():.0f}s to {train_df['Time'].max():.0f}s")
-print(f"Test time range: {test_df['Time'].min():.0f}s to {test_df['Time'].max():.0f}s")
-print(f"Train fraud count: {train_df['Class'].sum()} / {len(train_df)} ({train_df['Class'].mean()*100:.3f}%)")
-
 
 # =====================================================================
 # 2. VECTORIZED CAUSAL TEMPORAL & VELOCITY FEATURE ENGINEERING
 # =====================================================================
-print("\n[2/6] Engineering leakage-free causal features...")
-
 def extract_features(df):
     """
     Computes causal features strictly using past information (< current transaction time).
@@ -138,17 +109,12 @@ def extract_features(df):
     df["Time_Since_Prev"] = np.concatenate([[0.0], np.diff(times)])
     
     # 2.4 Causal Rolling Window Features (10s, 60s, 300s, 900s)
-    # Using prefix sum for instant O(N log N) causal computation
     amount_cumsum = np.concatenate([[0.0], np.cumsum(amounts)])
     indices = np.arange(n)
     
     windows = [10, 60, 300, 900]
     for w in windows:
-        # Strictly look for transactions where Time >= current_time - w and strictly < current_time
-        # searchsorted with side='left' on (times - w) finds first item >= current_time - w
         left_idx = np.searchsorted(times, times - w, side="left")
-        
-        # Clean division using np.divide with where argument to eliminate warnings
         count = indices - left_idx
         amt_sum = amount_cumsum[indices] - amount_cumsum[left_idx]
         amt_mean = np.divide(amt_sum, count, out=np.zeros_like(amt_sum), where=count > 0)
@@ -157,7 +123,6 @@ def extract_features(df):
         df[f"Amt_Sum_{w}s"] = amt_sum
         df[f"Amt_Mean_{w}s"] = amt_mean
         
-        # Velocity burst ratio (current amount relative to recent average)
         amt_ratio = np.divide(amounts, amt_mean, out=np.ones_like(amounts), where=amt_mean > 0)
         df[f"Amt_Ratio_{w}s"] = amt_ratio
     
@@ -167,9 +132,37 @@ def extract_features(df):
     
     return df
 
-t0 = time.time()
-train_feats = extract_features(train_df)
-print(f"Engineered {train_feats.shape[1]} columns in {time.time() - t0:.2f}s")
+
+if __name__ == "__main__":
+    print(f"Python version: {sys.version}")
+    print(f"NumPy version: {np.__version__}")
+    print(f"Pandas version: {pd.__version__}")
+    print(f"LightGBM version: {lgb.__version__}")
+
+    train_df = pd.read_csv(find_data_file("train_cleaned.csv"))
+    test_df = pd.read_csv(find_data_file("test_cleaned.csv"))
+
+    print(f"Raw train shape: {train_df.shape}")
+    print(f"Raw test shape: {test_df.shape}")
+
+    # Check exact duplicates
+    train_dups = train_df.duplicated().sum()
+    test_dups = test_df.duplicated().sum()
+    print(f"Exact duplicates in train: {train_dups}")
+    print(f"Exact duplicates in test: {test_dups}")
+
+    # Sort strictly by Time chronologically (essential for zero leakage)
+    train_df = train_df.sort_values("Time").reset_index(drop=True)
+    test_df = test_df.sort_values("Time").reset_index(drop=True)
+
+    print(f"Train time range: {train_df['Time'].min():.0f}s to {train_df['Time'].max():.0f}s")
+    print(f"Test time range: {test_df['Time'].min():.0f}s to {test_df['Time'].max():.0f}s")
+    print(f"Train fraud count: {train_df['Class'].sum()} / {len(train_df)} ({train_df['Class'].mean()*100:.3f}%)")
+
+    print("\n[2/6] Engineering leakage-free causal features...")
+    t0 = time.time()
+    train_feats = extract_features(train_df)
+    print(f"Engineered {train_feats.shape[1]} columns in {time.time() - t0:.2f}s")
 # Note: test_df features are extracted separately in evaluate_test.py using the same function.
 
 

@@ -47,16 +47,27 @@ if os.path.exists(_src_dir) and _src_dir not in sys.path:
 
 # Ensure IsolationForest is available in __main__, __mp_main__, and retrain_engine for unpickling
 import types
-sys.modules["__main__"].IsolationForest = IsolationForest
-if "__mp_main__" in sys.modules:
-    sys.modules["__mp_main__"].IsolationForest = IsolationForest
 
-if "retrain_engine" not in sys.modules:
-    _re_mod = types.ModuleType("retrain_engine")
-    _re_mod.IsolationForest = IsolationForest
-    sys.modules["retrain_engine"] = _re_mod
-else:
-    sys.modules["retrain_engine"].IsolationForest = IsolationForest
+# Inject IsolationForest into __main__ shim (needed for pickle deserialization)
+sys.modules["__main__"].IsolationForest = IsolationForest
+
+# Stub __mp_main__ unconditionally to cover multiprocessing workers
+for _mod_name in ("__mp_main__", "retrain_engine"):
+    if _mod_name not in sys.modules:
+        _stub = types.ModuleType(_mod_name)
+        _stub.IsolationForest = IsolationForest
+        sys.modules[_mod_name] = _stub
+    else:
+        sys.modules[_mod_name].IsolationForest = IsolationForest
+
+# Stub ml_pipeline so pickle.load of an artifact saved during training
+# does NOT re-execute ml_pipeline.py as a script (which would need train_cleaned.csv).
+if "ml_pipeline" not in sys.modules:
+    _ml_stub = types.ModuleType("ml_pipeline")
+    _ml_stub.IsolationForest = IsolationForest
+    # Provide extract_features stub; the real implementation is inlined in predict.py
+    _ml_stub.extract_features = None
+    sys.modules["ml_pipeline"] = _ml_stub
 
 
 # =====================================================================
@@ -289,7 +300,7 @@ def main():
     parser.add_argument(
         "--input", "-i",
         required=True,
-        help="Path to input test CSV file (e.g. test.csv)"
+        help="Path to input test CSV file (e.g. test_cleaned.csv)"
     )
     parser.add_argument(
         "--output", "-o",

@@ -1,0 +1,77 @@
+{
+  "active_model_version": "model_v5",
+  "artifact_path": "c:\\Users\\kumar\\Downloads\\Banking Fraud Management\\SurgeGuard\\models\\model_v5.pkl",
+  "activated_at": "2026-09-30T04:20:07.645268+00:00",
+  "metrics": {
+    "roc_auc": 0.7792,
+    "pr_auc": 0.6231
+  },
+  "previous_model": "model_v4",
+  "feedback_samples_used": 4,
+  "history": [
+    {
+      "challenger_version": "model_v2",
+      "champion_version": "model_v1",
+      "evaluated_at": "2026-09-29T21:49:55.911270+00:00",
+      "champion_metrics": {
+        "roc_auc": 0.7801,
+        "pr_auc": 0.6216
+      },
+      "challenger_metrics": {
+        "roc_auc": 0.7803,
+        "pr_auc": 0.6243
+      },
+      "feedback_samples": 3,
+      "promoted": true,
+      "reason": "Passed all validation criteria"
+    },
+    {
+      "challenger_version": "model_v3",
+      "champion_version": "model_v2",
+      "evaluated_at": "2026-09-29T21:50:24.812949+00:00",
+      "champion_metrics": {
+        "roc_auc": 0.7803,
+        "pr_auc": 0.6243
+      },
+      "challenger_metrics": {
+        "roc_auc": 0.7803,
+        "pr_auc": 0.6243
+      },
+      "feedback_samples": 3,
+      "promoted": true,
+      "reason": "Passed all validation criteria"
+    },
+    {
+      "challenger_version": "model_v4",
+      "champion_version": "model_v3",
+      "evaluated_at": "2026-09-29T23:03:28.745802+00:00",
+      "champion_metrics": {
+        "roc_auc": 0.7803,
+        "pr_auc": 0.6243
+      },
+      "challenger_metrics": {
+        "roc_auc": 0.7803,
+        "pr_auc": 0.6243
+      },
+      "feedback_samples": 3,
+      "promoted": true,
+      "reason": "Passed all validation criteria"
+    },
+    {
+      "challenger_version": "model_v5",
+      "champion_version": "model_v4",
+      "evaluated_at": "2026-09-30T04:20:07.645268+00:00",
+      "champion_metrics": {
+        "roc_auc": 0.7803,
+        "pr_auc": 0.6243
+      },
+      "challenger_metrics": {
+        "roc_auc": 0.7792,
+        "pr_auc": 0.6231
+      },
+      "feedback_samples": 4,
+      "promoted": true,
+      "reason": "Passed all validation criteria"
+    }
+  ]
+}

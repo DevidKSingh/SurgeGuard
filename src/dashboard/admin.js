@@ -578,6 +578,25 @@ function openDetail(txId) {
   selectedTxId = txId;
   clearDetailMsg();
 
+  // Silently pre-register this transaction with the server the moment the
+  // analyst opens it. This ensures the server's flagged_store has the record
+  // before the analyst submits feedback (idempotent — safe to call twice).
+  fetch('/api/v1/admin/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      transaction_id:       tx.transaction_id,
+      decision:             tx.original_decision || tx.current_decision || 'REVIEW',
+      risk_score:           tx.risk_score           || 0,
+      ml_fraud_prob:        tx.ml_fraud_prob        || 0,
+      anomaly_score:        tx.anomaly_score        || 0,
+      velocity_surge_index: tx.velocity_surge_index || 0,
+      amount:               tx.amount               || null,
+      reasons:              tx.reasons              || [],
+      feature_vector:       tx.feature_vector       || null
+    })
+  }).catch(() => {}); // fire-and-forget; feedback step will retry if needed
+
   if (adminTableBody) {
     adminTableBody.querySelectorAll('tr').forEach(r => r.classList.remove('selected-row'));
     const row = adminTableBody.querySelector(`tr[data-txid="${txId}"]`);
@@ -704,11 +723,43 @@ async function submitVerifiedFeedback() {
   if (selectedFeedbackLabel === null || !selectedTxId) return;
 
   if (btnSubmitFeedback) btnSubmitFeedback.disabled = true;
-  if (btnSubmitFeedbackLabel) btnSubmitFeedbackLabel.textContent = 'Recording to SQLite...';
+  if (btnSubmitFeedbackLabel) btnSubmitFeedbackLabel.textContent = 'Registering transaction...';
   if (feedbackSubmitMsg) feedbackSubmitMsg.textContent = '';
 
   const note = feedbackNoteInput ? feedbackNoteInput.value.trim() : '';
 
+  // ── Step 1: Ensure the transaction is registered server-side ────────────────
+  // Transactions from the dashboard simulation exist only in localStorage.
+  // The server's flagged_store is in-memory and will be empty for them after a
+  // page reload or server restart. POST /api/v1/admin/register is idempotent —
+  // safe to call every time; it no-ops if already present.
+  try {
+    const tx = allTransactions.find(t => t.transaction_id === selectedTxId);
+    if (tx) {
+      await fetch('/api/v1/admin/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction_id:       tx.transaction_id,
+          decision:             tx.original_decision || tx.current_decision || 'REVIEW',
+          risk_score:           tx.risk_score           || 0,
+          ml_fraud_prob:        tx.ml_fraud_prob        || 0,
+          anomaly_score:        tx.anomaly_score        || 0,
+          velocity_surge_index: tx.velocity_surge_index || 0,
+          amount:               tx.amount               || null,
+          reasons:              tx.reasons              || [],
+          feature_vector:       tx.feature_vector       || null
+        })
+      });
+    }
+  } catch (_) {
+    // Registration is best-effort; proceed regardless.
+    // If server is offline the feedback call will handle the error below.
+  }
+
+  if (btnSubmitFeedbackLabel) btnSubmitFeedbackLabel.textContent = 'Recording to SQLite...';
+
+  // ── Step 2: Submit verified human feedback ──────────────────────────────────
   try {
     const res = await fetch(`/api/v1/admin/feedback/${encodeURIComponent(selectedTxId)}`, {
       method: 'POST',

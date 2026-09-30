@@ -49,9 +49,7 @@ v_cols = artifacts["v_cols"]
 from ml_pipeline import extract_features
 test_path = resolve_path([
     "test_cleaned.csv",
-    "test.csv",
     os.path.join(os.path.dirname(__file__), "..", "test_cleaned.csv"),
-    os.path.join(os.path.dirname(__file__), "..", "test.csv"),
 ])
 test_df = pd.read_csv(test_path).sort_values("Time").reset_index(drop=True)
 test_feats = extract_features(test_df)
